@@ -1107,13 +1107,16 @@ async function prepareAll() {
   if (npcs.ready) world.reflectSkip.push(...npcs.roots());
   if (walkers.ready) world.reflectSkip.push(...walkers.roots());
   // everything that's hidden right now (rooms' extras, far furniture, idle characters, cars waiting off-screen, the
-  // food that appears when you order) is shown for this one frame, so it's all on the GPU before you meet it
-  const hidden = [];
-  scene.traverse((o) => { if (!o.visible) hidden.push(o); });
-  for (const o of hidden) o.visible = true;
-  const culled = [];
-  scene.traverse((o) => { if ((o.isMesh || o.isPoints || o.isLine) && o.frustumCulled) { o.frustumCulled = false; culled.push(o); } });
-  camera.layers.enable(1);
+  // food that appears when you order) is shown for this one frame, so it's all on the GPU before you meet it.
+  // Not on a phone: the whole town on the GPU at once is more than a phone browser allows (Safari closes the page);
+  // there things go up as they come into view.
+  const hidden = [], culled = [];
+  if (!MOBILE) {
+    scene.traverse((o) => { if (!o.visible) hidden.push(o); });
+    for (const o of hidden) o.visible = true;
+    scene.traverse((o) => { if ((o.isMesh || o.isPoints || o.isLine) && o.frustumCulled) { o.frustumCulled = false; culled.push(o); } });
+    camera.layers.enable(1);
+  }
   const aoWas = ao.enabled; ao.enabled = quality >= 2;
   try { await renderer.compileAsync(scene, camera); } catch { renderer.compile(scene, camera); }
   ui.progress(0.98, 'Preparing HD graphics…'); await frame();

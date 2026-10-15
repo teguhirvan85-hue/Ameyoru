@@ -4,7 +4,7 @@
 // shared loader is created once the renderer exists (it needs to ask the GPU what it supports).
 import { CompressedTexture } from 'three';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-import { TEX_MAX } from './device.js';
+import { TEX_MAX, MOBILE } from './device.js';
 
 const TRANSCODER = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/basis/';
 let ktx2 = null;
@@ -22,24 +22,34 @@ function capMips(t) {
   return t;
 }
 
-// Once a texture is on the GPU its transcoded data is only dead weight in JavaScript (it was as big again as what
-// the GPU holds): drop it a few seconds after the upload. Copies of a texture (GLTFLoader makes them; they share
-// its data) carry the same hook, so whichever is uploaded lets go of it. Textures marked userData.keepData (the surfaces, uploaded again for each
-// repeat they're used at) keep it. Everything in the town is uploaded in the warm-up frame (main.js), before this.
+// Once a texture is on the GPU its transcoded data is only dead weight in JavaScript (as big again as what the GPU
+// holds). Copies of a texture (GLTFLoader makes them; they share its data) are counted, and the data goes as soon
+// as every copy has been uploaded — straight away, so it never sits in memory twice. Textures marked
+// userData.keepData (the surfaces, uploaded again for each repeat they're used at) keep it.
+const USERS = new WeakMap();   // the shared mip levels → { made, uploaded }
 function dropData(t) {
-  const mips = t.mipmaps;
-  if (t.userData.keepData || !mips?.length) return;
-  setTimeout(() => { for (const m of mips) m.data = null; }, 3000);
+  const mips = t.mipmaps, u = mips?.length && USERS.get(mips[0]);
+  if (!u || t.userData.keepData) return;
+  if (++u.uploaded >= u.made) for (const m of mips) m.data = null;
 }
 // (a texture sets its own onUpdate to null when it's made, and copies don't carry it: hand it on when cloned)
 const clone = CompressedTexture.prototype.clone;
-CompressedTexture.prototype.clone = function () { const c = clone.call(this); c.onUpdate = this.onUpdate; return c; };
+CompressedTexture.prototype.clone = function () {
+  const c = clone.call(this); c.onUpdate = this.onUpdate;
+  const u = this.mipmaps?.length && USERS.get(this.mipmaps[0]); if (u) u.made++;
+  return c;
+};
 
 export function setupKTX2(renderer) {
   if (!ktx2) {
-    ktx2 = new KTX2Loader().setTranscoderPath(TRANSCODER).detectSupport(renderer);
+    // on a phone, fewer transcoding workers at once (each holds its own copy of what it's working on)
+    ktx2 = new KTX2Loader().setTranscoderPath(TRANSCODER).setWorkerLimit(MOBILE ? 1 : 4).detectSupport(renderer);
     const make = ktx2._createTextureFrom.bind(ktx2);
-    ktx2._createTextureFrom = async (...a) => { const t = capMips(await make(...a)); t.onUpdate = dropData; return t; };
+    ktx2._createTextureFrom = async (...a) => {
+      const t = capMips(await make(...a));
+      if (t.mipmaps?.length) { USERS.set(t.mipmaps[0], { made: 1, uploaded: 0 }); t.onUpdate = dropData; }
+      return t;
+    };
   }
   for (const l of waiting.splice(0)) l.setKTX2Loader(ktx2);
   return ktx2;
