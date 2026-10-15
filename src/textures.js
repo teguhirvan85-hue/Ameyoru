@@ -1,5 +1,6 @@
 // Every texture in the game is painted on a canvas here — no image files.
 import * as THREE from 'three';
+import { MOBILE } from './device.js';
 
 export const JP_FONT = '"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif';
 export const LATIN_FONT = '"Chakra Petch","Noto Sans JP",sans-serif';
@@ -13,11 +14,20 @@ export function mulberry32(a) {
   };
 }
 
+// On a phone, a painted texture is kept at half size once it's drawn (a quarter of the memory; on a phone screen
+// it looks the same). Small ones stay as they are.
+export function phoneSize(c) {
+  if (!MOBILE || c.width * c.height < 128 * 128) return c;
+  const s = document.createElement('canvas'); s.width = Math.max(1, c.width >> 1); s.height = Math.max(1, c.height >> 1);
+  const g = s.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(c, 0, 0, s.width, s.height);
+  return s;
+}
+
 function make(w, h, draw, { srgb = true, repeat = false } = {}) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   draw(c.getContext('2d'), w, h);
-  const t = new THREE.CanvasTexture(c);
+  const t = new THREE.CanvasTexture(phoneSize(c));
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 8;

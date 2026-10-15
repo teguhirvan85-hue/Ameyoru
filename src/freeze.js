@@ -5,13 +5,14 @@
 // Anything that changes only when you interact with it must be marked userData.dynamic = true (on it or a parent).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { indexedCopy, freeAfterUpload } from './vehmerge.js';
 
 const CELL = 40;
 const BASE_COMPILE = THREE.Material.prototype.onBeforeCompile;
 const tex = (t) => (t ? t.uuid : '-');
 // two materials that would draw the same: merging may use either. Materials that code changes later
 // (userData.mutable, custom shaders, anything that changed while we watched) only merge with themselves.
-function matKey(m) {
+export function matKey(m) {
   if (m.userData.mutable || m.isShaderMaterial || m.onBeforeCompile !== BASE_COMPILE) return m.uuid;
   const c = (x) => (x?.isColor ? x.getHexString() : '-');
   return [m.type, m.blending, m.transparent, c(m.color), c(m.emissive), m.emissiveIntensity, m.roughness, m.metalness, m.opacity, m.side, m.flatShading, m.vertexColors,
@@ -53,7 +54,8 @@ export function makeFreezer(scene, { cullAdd } = {}) {
       // a material that changed while we watched is animated: only merge with its own instance
       const mk = matKey(o.material), key0 = mk === s.key ? mk : o.material.uuid;
       const g = o.geometry;
-      if (!g.attributes.position) continue;
+      // (a geometry already on the GPU may have let go of its arrays: it can't be merged again)
+      if (!g.attributes.position?.array) continue;
       if (!g.boundingSphere) g.computeBoundingSphere();
       v.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld);
       // which attributes it carries decides what it can merge with
@@ -68,7 +70,7 @@ export function makeFreezer(scene, { cullAdd } = {}) {
       if (list.length < 2) continue;
       const geos = [];
       for (const o of list) {
-        let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        const g = indexedCopy(o.geometry);
         for (const k of Object.keys(g.attributes)) if (!attrs.includes(k)) g.deleteAttribute(k);
         g.morphAttributes = {};
         g.applyMatrix4(o.matrixWorld);
@@ -78,7 +80,7 @@ export function makeFreezer(scene, { cullAdd } = {}) {
       try { merged = mergeGeometries(geos, false); } catch { merged = null; }
       for (const g of geos) g.dispose();
       if (!merged) continue;
-      merged.computeBoundingSphere();
+      merged.computeBoundingSphere(); merged.computeBoundingBox(); freeAfterUpload(merged);
       const m = new THREE.Mesh(merged, mat);
       m.castShadow = list[0].castShadow; m.receiveShadow = list[0].receiveShadow; m.renderOrder = list[0].renderOrder;
       m.matrixAutoUpdate = false; m.matrixWorldAutoUpdate = false; m.updateMatrix(); m.updateMatrixWorld(true);

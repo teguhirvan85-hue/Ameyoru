@@ -36,7 +36,7 @@ function atlas(list, cw, ch, cols, vertical) {
       g.fillText(text, x + cw / 2, y + ch / 2 + 2);
     }
   });
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  const t = new THREE.CanvasTexture(TX.phoneSize(c)); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return { t, cols, rows };
 }
 // a plane showing one atlas cell
@@ -91,7 +91,7 @@ function adAtlas() {
     while (g.measureText(sub).width > cw - 200 && s2 > 12) { s2 -= 1; g.font = `700 ${s2}px ${TX.JP_FONT}`; }
     g.fillText(sub, x + 174, y + ch / 2 + 48); g.globalAlpha = 1;
   });
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  const t = new THREE.CanvasTexture(TX.phoneSize(c)); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return { t, cols, rows };
 }
 

@@ -1,6 +1,7 @@
 // Painted-metal surface detail drawn once on canvases: plates with panel seams, rivets, vents, a little wear
 // (scratched edges, grime) and decals, as colour + normal + roughness maps (the hand-built truck's box uses it).
 import * as THREE from 'three';
+import { phoneSize } from './textures.js';
 
 const cache = {};
 const rng = (seed) => () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
@@ -19,7 +20,7 @@ function normalFrom(hc, strength = 2.2) {
   ctx.putImageData(img, 0, 0);
   return out;
 }
-const tex = (c, srgb) => { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+const tex = (c, srgb) => { const t = new THREE.CanvasTexture(phoneSize(c)); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
 
 // armour plating: { map (white-ish, tinted by the material colour), normalMap, roughnessMap }
 export function armourMaps(seed = 7) {

@@ -5,6 +5,7 @@
 // When it rains most of them carry an umbrella.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { withKTX2 } from './ktx2.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { loadMixamoClip } from './mixamo.js';
 import { NPC_MODELS } from './npcs.js';
@@ -13,14 +14,16 @@ import { JUNCTIONS } from './details.js';
 import { mergeVRM } from './vrmmerge.js';
 import { NORTH } from './north.js';
 import { tameHighlights } from './vrmtone.js';
+import { shareModelTextures } from './vrmshare.js';
+import { MOBILE } from './device.js';
 
-const BODIES = 18;          // characters that can be on screen at once
+const BODIES = MOBILE ? 8 : 18;   // characters that can be on screen at once (fewer on a phone)
 const SEE = 45;             // walkers closer than this get a body (+6 m to keep one)
 const R = 0.3;              // how much room a walker takes
 const FEMALE = new Set(['npc_fumiriya', 'npc_shino']);
 const CLIP_SPEED = { walk: 1.45, walk_female: 1.35 };
 
-const loader = new GLTFLoader();
+const loader = withKTX2(new GLTFLoader());
 loader.register((parser) => new VRMLoaderPlugin(parser));
 
 // ---------- the pavement network ----------
@@ -217,6 +220,7 @@ export function makeWalkers(scene, world) {
         VRMUtils.removeUnnecessaryVertices(gltf.scene);
         VRMUtils.combineSkeletons(gltf.scene);
         VRMUtils.rotateVRM0(vrm);
+        shareModelTextures(name, vrm.scene);   // one set of textures per model, shared with every other copy
         mergeVRM(gltf.scene); // ~80 meshes → ~30
         tameHighlights(gltf.scene);
         vrm.scene.traverse((o) => {

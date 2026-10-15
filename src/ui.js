@@ -1,3 +1,5 @@
+// ?memlog=1 in the address: log the JavaScript memory in use after each loading step
+const MEMLOG = new URLSearchParams(location.search).has('memlog');
 const $ = (id) => document.getElementById(id);
 
 export class UI {
@@ -24,6 +26,8 @@ export class UI {
         li.querySelector('.ok').textContent = 'OK';
         const ms = performance.now() - t0;
         li.querySelector('.ms').textContent = ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+        // ?memlog=1: how much JavaScript memory each step of the loading leaves in use (a check for phones)
+        if (MEMLOG && performance.memory) console.info(`[ameyoru] mem after ${what}: ${(performance.memory.usedJSHeapSize / 1e6).toFixed(0)} MB`);
       },
     };
   }

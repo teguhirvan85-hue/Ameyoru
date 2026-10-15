@@ -18,7 +18,7 @@ import { dressRoom, place, cullPlaced, PLACED } from './furnish.js';
 import { makeFreezer } from './freeze.js';
 import { buildNeon } from './neon.js';
 import { buildTruck, buildVan } from './trucks.js';
-import { mergeVehicle } from './vehmerge.js';
+import { mergeVehicle, freeAfterUpload } from './vehmerge.js';
 import { dressVehicle } from './realveh.js';
 import { buildCar } from './cars.js';
 import { buildNorth } from './north.js';
@@ -59,6 +59,46 @@ const SHOPS = [
   ['焼鳥', '#1f1a14', '#ffb45a'], ['書店', '#0f5b3a', '#f4ffe9'], ['古着', '#232323', '#9df0ff'], ['質屋', '#0e2b5c', '#ffe17a'],
 ];
 const WALLS = ['#5d6470', '#6b6e75', '#8a7f72', '#4c5058', '#7d756b', '#596068', '#9a9488', '#3f444c'];
+
+// Pieces of static detail (box, lathe, tube, rounded box…: { g: geometry, m: where it goes, or null when the
+// geometry is already in place) written into one indexed position/normal/uv geometry. Its arrays are let go once
+// it's on the GPU.
+function packMerge(items) {
+  let nv = 0, ni = 0;
+  for (const { g } of items) { const n = g.attributes.position.count; nv += n; ni += g.index ? g.index.count : n; }
+  const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = new Float32Array(nv * 2);
+  const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+  const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+  let base = 0, io = 0;
+  for (const { g, m } of items) {
+    const P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv, n = P.count;
+    if (m) nm.getNormalMatrix(m);
+    for (let i = 0; i < n; i++) {
+      v.fromBufferAttribute(P, i); if (m) v.applyMatrix4(m); pos[(base + i) * 3] = v.x; pos[(base + i) * 3 + 1] = v.y; pos[(base + i) * 3 + 2] = v.z;
+      if (N) { v.fromBufferAttribute(N, i); if (m) v.applyMatrix3(nm).normalize(); nor[(base + i) * 3] = v.x; nor[(base + i) * 3 + 1] = v.y; nor[(base + i) * 3 + 2] = v.z; }
+      if (U) { uv[(base + i) * 2] = U.getX(i); uv[(base + i) * 2 + 1] = U.getY(i); }
+    }
+    const flip = m && m.determinant() < 0;
+    if (g.index) {
+      const I = g.index;
+      for (let k = 0; k < I.count; k += 3) {
+        const a = I.getX(k), b = I.getX(k + 1), c = I.getX(k + 2);
+        idx[io++] = base + a; idx[io++] = base + (flip ? c : b); idx[io++] = base + (flip ? b : c);
+      }
+    } else {
+      for (let k = 0; k + 2 < n; k += 3) { idx[io++] = base + k; idx[io++] = base + (flip ? k + 2 : k + 1); idx[io++] = base + (flip ? k + 1 : k + 2); }
+    }
+    base += n;
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  out.setIndex(new THREE.BufferAttribute(io === idx.length ? idx : idx.subarray(0, io), 1));
+  out.computeBoundingSphere(); out.computeBoundingBox();
+  freeAfterUpload(out);
+  return out;
+}
 
 export function buildWorld(scene, renderer, assets) {
   const rnd = TX.mulberry32(20261012);
@@ -101,14 +141,16 @@ export function buildWorld(scene, renderer, assets) {
   };
   const dark = std(0x16181c, { roughness: 0.6 });
 
-  // static detail geometry is merged per material to keep draw calls low
-  const batches = new Map(), tmpO = new THREE.Object3D();
+  // static detail geometry is merged per material to keep draw calls low. Each piece is only noted down (its
+  // geometry and where it goes); packMerge() writes them all straight into one buffer per material and cell at the
+  // end — no copy of every little box in between (that used to cost the build ~750 MB of memory at its peak).
+  const batches = new Map();
   const batch = (geo, mat, x, y, z, ry = 0) => {
-    tmpO.position.set(x, y, z); tmpO.rotation.set(0, ry, 0); tmpO.updateMatrix();
     if (!batches.has(mat)) batches.set(mat, []);
-    batches.get(mat).push(geo.clone().applyMatrix4(tmpO.matrix));
+    batches.get(mat).push({ g: geo, m: new THREE.Matrix4().makeRotationY(ry).setPosition(x, y, z) });
   };
-  const batchRaw = (geo, mat) => { if (!batches.has(mat)) batches.set(mat, []); batches.get(mat).push(geo); };
+  // a piece already in place (world coordinates)
+  const batchRaw = (geo, mat) => { if (!batches.has(mat)) batches.set(mat, []); batches.get(mat).push({ g: geo, m: null }); };
 
   // photo-scanned PBR surfaces when available (assets.surfaces), plain materials otherwise
   const SF = assets?.surfaces;
@@ -2652,27 +2694,19 @@ export function buildWorld(scene, renderer, assets) {
   }
 
   // merge the static detail per material *and* per 40 m cell, so whole cells can be frustum- and distance-culled
-  const CELL = 40;
+  const CELL = 40, cv = new THREE.Vector3();
   for (const [mat, list] of batches) {
     const cells = new Map();
-    for (const g of list) {
-      if (!g.boundingSphere) g.computeBoundingSphere();
-      const c = g.boundingSphere.center, key = `${Math.floor(c.x / CELL)},${Math.floor(c.z / CELL)}`;
+    for (const it of list) {
+      if (!it.g.boundingSphere) it.g.computeBoundingSphere();
+      cv.copy(it.g.boundingSphere.center); if (it.m) cv.applyMatrix4(it.m);
+      const key = `${Math.floor(cv.x / CELL)},${Math.floor(cv.z / CELL)}`;
       if (!cells.has(key)) cells.set(key, []);
-      cells.get(key).push(g);
+      cells.get(key).push(it);
     }
-    for (const part of cells.values()) {
-      // mixed sources (box, lathe, tube, rounded box) — normalise to non-indexed position/normal/uv
-      const norm = part.map((g) => {
-        const n = g.index ? g.toNonIndexed() : g;
-        for (const k of Object.keys(n.attributes)) if (!['position', 'normal', 'uv'].includes(k)) n.deleteAttribute(k);
-        if (!n.attributes.uv) n.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n.attributes.position.count * 2), 2));
-        return n;
-      });
-      scene.add(new THREE.Mesh(mergeGeometries(norm, false), mat));
-    }
-    list.forEach((g) => g.dispose());
+    for (const part of cells.values()) scene.add(new THREE.Mesh(packMerge(part), mat));
   }
+  batches.clear();
   // a guard: refracting glass (transmission) anywhere in town would make three.js draw everything twice a frame
   scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m?.transmission > 0) { m.transmission = 0; m.transparent = true; m.opacity = Math.min(m.opacity, 0.45); m.depthWrite = false; m.needsUpdate = true; } });
   scene.traverse((o) => {
@@ -2805,6 +2839,14 @@ export function buildWorld(scene, renderer, assets) {
     const sp = m.geometry.boundingSphere;
     if (sp && sp.radius <= 120) cullList.push({ o: m, x: sp.center.x, z: sp.center.z, r: sp.radius });
   } });
+  // the meshes that were folded into the merged ones leave the scene: let go of them here too, or their
+  // geometry (hundreds of MB) stays in memory for nothing
+  const finishFreeze = freezer.finish;
+  freezer.finish = () => {
+    const r = finishFreeze();
+    for (let i = cullList.length - 1; i >= 0; i--) if (!cullList[i].meshes && !cullList[i].o.parent) cullList.splice(i, 1);
+    return r;
+  };
 
   return {
     npcSlots, reflectSkip, freezer, REF, camObs,

@@ -33,11 +33,14 @@ import { makeEconomy } from './economy.js';
 import { makePhoto } from './photo.js';
 import { NORTH } from './north.js';
 import { makeQuests } from './quests.js';
+import { setupKTX2 } from './ktx2.js';
+import { MOBILE } from './device.js';
 import { makeTouch } from './touch.js';
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+setupKTX2(renderer);   // the models' textures are KTX2 (ktx2.js)
+renderer.setPixelRatio(MOBILE ? 1 : Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -308,6 +311,7 @@ async function boot() {
   world.fx.splash = (x, y, z, n) => rain.splashAt(x, y, z, n);
   setWeather(load('ameyoru.weather2', 0), false);
   if (localStorage.getItem('ameyoru.quality') !== null) setQuality(load('ameyoru.quality', 2), false);
+  else if (MOBILE) setQuality(1, false);
   // the hero's head and shoulders catch the rain too
   rain.surfaces.push(heroSurface);
   tRain.done(`${WEATHER[weather].name.toLowerCase()} · ${world.rainSurfaces.length} roofs & awnings`);
@@ -1044,7 +1048,7 @@ const QUALITY = [
   { name: 'Medium', pr: 1, bloom: true, shadows: true, reflect: true },
   { name: 'High', pr: Math.min(devicePixelRatio, 1.5), bloom: true, shadows: true, reflect: true },
 ];
-let quality = 2;
+let quality = MOBILE ? 1 : 2;   // a phone starts on Medium (render at 1× the screen's pixels); it can still choose
 function setQuality(i, announce = true) {
   quality = Math.max(0, Math.min(QUALITY.length - 1, i | 0));
   const q = QUALITY[quality];
@@ -1227,7 +1231,7 @@ const ST_TABS = [
   ['Graphics', [
     { label: 'Graphics quality', hint: 'Automatic adjusts to your device\'s speed', type: 'choice', opts: ['Automatic', 'Low', 'Medium', 'High'],
       get: () => (localStorage.getItem('ameyoru.quality') === null ? 0 : quality + 1),
-      set: (i) => { if (i === 0) { localStorage.removeItem('ameyoru.quality'); setQuality(2, false); perfDone = false; perfT = 0; perfN = 0; } else { setQuality(i - 1, false); save('ameyoru.quality', i - 1); } } },
+      set: (i) => { if (i === 0) { localStorage.removeItem('ameyoru.quality'); setQuality(MOBILE ? 1 : 2, false); perfDone = false; perfT = 0; perfN = 0; } else { setQuality(i - 1, false); save('ameyoru.quality', i - 1); } } },
     { k: 'fov', label: 'Field of view', hint: 'How wide the camera sees', type: 'range', min: -10, max: 15, step: 1, fmt: (v) => (v ? `${v > 0 ? '+' : ''}${v}°` : 'Standard') },
     { k: 'dof', label: 'Depth of field', hint: 'The far background softly blurred, like a camera lens', type: 'toggle' },
     { k: 'lens', label: 'Raindrops on the lens', hint: 'Water beads on the camera when it rains', type: 'toggle' },
@@ -1296,7 +1300,7 @@ function closeSettings() {
 $('stReset').addEventListener('click', () => {
   Object.assign(settings, SET_DEFAULT); saveSettings(); applySettings();
   for (const k of ['music', 'amb', 'sfx', 'voice', 'master']) sound.setVolume(k, { music: 0.55, amb: 0.85, sfx: 0.9, voice: 0.8, master: 0.9 }[k]);
-  localStorage.removeItem('ameyoru.quality'); setQuality(2, false);
+  localStorage.removeItem('ameyoru.quality'); setQuality(MOBILE ? 1 : 2, false);
   renderSettings(); ui.toast('Settings reset to defaults');
 });
 function settingsInput() {

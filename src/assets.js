@@ -1,6 +1,7 @@
 // Loads the Poly Haven (CC0) props in /assets and places them as instanced meshes.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { withKTX2 } from './ktx2.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { wheel, plateTexture } from './cars.js';
 import { rigCar, findRig } from './carrig.js';
@@ -101,7 +102,7 @@ function addPlates(car, key) {
 }
 
 export async function loadAssets(onProgress) {
-  const loader = new GLTFLoader();
+  const loader = withKTX2(new GLTFLoader());
   const roots = {};
   const cars = {};
   let done = 0;

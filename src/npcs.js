@@ -5,21 +5,24 @@
 // texting, pressing buttons.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { withKTX2 } from './ktx2.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { loadMixamoClip } from './mixamo.js';
 import { roomAt } from './rooms.js';
 import { mergeVRM } from './vrmmerge.js';
 import { tameHighlights } from './vrmtone.js';
+import { shareModelTextures } from './vrmshare.js';
+import { MOBILE } from './device.js';
 
 export const NPC_MODELS = ['npc_d', 'npc_e', 'npc_f', 'npc_g', 'npc_fumiriya', 'npc_shino'];
-const PER_MODEL = 2;          // instances of each model (12 in all)
+const PER_MODEL = MOBILE ? 1 : 2;   // instances of each model (12 in all; 6 on a phone)
 const RANGE = 22;             // slots further than this keep their stand-in
-const ACTIVE = 8;             // at most this many characters at once (each VRoid model is ~80 meshes)
+const ACTIVE = MOBILE ? 5 : 8;   // at most this many characters at once (each VRoid model is ~80 meshes)
 const NEAR = 10;              // hair and skirts only swing (spring bones) on characters this close
 // the clips a character may need, by what the slot is for
 const CLIPS = { idle: 'idle', look: 'idle_look', talk: 'talking', sit: 'sit_idle', text: 'texting', push: 'button_push', drink: 'drinking' };
 
-const loader = new GLTFLoader();
+const loader = withKTX2(new GLTFLoader());
 loader.register((parser) => new VRMLoaderPlugin(parser));
 
 // slots: { x, y, z, yaw (facing, 0 = +z), act ('idle' | 'talk' | 'sit' | 'text' | 'push'), seat (sitting: seat-top height),
@@ -35,7 +38,6 @@ export function makeNPCs(scene, slots) {
     }
     for (const name of NPC_MODELS) {
       if (!buffers[name]) continue;
-      let first = null;
       const copies = [];
       for (let i = 0; i < PER_MODEL; i++) {
         try {
@@ -44,8 +46,8 @@ export function makeNPCs(scene, slots) {
           VRMUtils.removeUnnecessaryVertices(gltf.scene);
           VRMUtils.combineSkeletons(gltf.scene);
           VRMUtils.rotateVRM0(vrm);
-          // the second copy of a model borrows the first one's textures, so the GPU holds them once
-          if (first) shareTextures(first.vrm.scene, vrm.scene);
+          // every copy of a model (here and among the walkers) uses the first one's textures: the GPU holds them once
+          shareModelTextures(name, vrm.scene);
           vrm.scene.traverse((o) => {
             if (!o.isMesh) return;
             o.frustumCulled = false; o.castShadow = false; o.receiveShadow = true;
@@ -56,7 +58,6 @@ export function makeNPCs(scene, slots) {
           const npc = { name, vrm, root, mixer: new THREE.AnimationMixer(vrm.scene), actions: {}, slot: null, cur: null, t: Math.random() * 10 };
           await clipsFor(npc);
           pool.push(npc); copies.push(npc);
-          if (!first) first = npc;
         } catch (e) { console.warn('[ameyoru] npc failed', name, e); }
       }
       // now that the copies share their textures, merge each one's meshes (~80 → ~30 draw calls)
@@ -158,20 +159,3 @@ export function makeNPCs(scene, slots) {
   };
 }
 
-// point the second copy's materials at the first copy's textures (same model, same order of meshes).
-// MToon keeps its textures in uniforms (the named properties are getters onto them), so swap there.
-function shareTextures(a, b) {
-  const ma = [], mb = [];
-  a.traverse((o) => { if (o.isMesh) ma.push(...(Array.isArray(o.material) ? o.material : [o.material])); });
-  b.traverse((o) => { if (o.isMesh) mb.push(...(Array.isArray(o.material) ? o.material : [o.material])); });
-  if (ma.length !== mb.length) return;
-  mb.forEach((m, i) => {
-    const src = ma[i];
-    for (const [k, u] of Object.entries(m.uniforms || {})) {
-      const t = u?.value, st = src.uniforms?.[k]?.value;
-      if (t?.isTexture && st?.isTexture && t !== st) { u.value = st; t.dispose(); }
-    }
-    for (const k of ['map', 'normalMap', 'emissiveMap']) if (m[k]?.isTexture && src[k]?.isTexture && m[k] !== src[k]) { const t = m[k]; m[k] = src[k]; t.dispose(); }
-    m.needsUpdate = true;
-  });
-}

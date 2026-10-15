@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { wheel, plateTexture } from './cars.js';
 import { armourMaps } from './metaltex.js';
-import { JP_FONT, LATIN_FONT } from './textures.js';
+import { JP_FONT, LATIN_FONT, phoneSize } from './textures.js';
 
 export const LIVERY = [
   { name: 'ほし急便', sub: 'HOSHI EXPRESS', c1: '#1a5fbf', c2: '#ffffff', stripe: '#f2c400' },
@@ -24,7 +24,7 @@ export const liveryTex = (L) => {
   g.font = `700 40px ${LATIN_FONT}`; g.fillText(L.sub, 64, 245);
   // a little grime along the bottom
   const gr = g.createLinearGradient(0, 320, 0, 384); gr.addColorStop(0, 'rgba(60,55,45,0)'); gr.addColorStop(1, 'rgba(60,55,45,0.35)'); g.fillStyle = gr; g.fillRect(0, 320, 1024, 64);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+  const t = new THREE.CanvasTexture(phoneSize(c)); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 };
 
 function common(color) {

@@ -3,21 +3,25 @@
 // pivots, the driver's door) and anything marked userData.keep. Same look, a fraction of the draw calls.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { matKey } from './freeze.js';
 
 // Model files often carry many copies of one material (same colour, same maps); two meshes whose materials match
 // in every setting can share one. Materials the game changes later (lamps, head/tail lights) keep their identity.
 const sigOf = new WeakMap();
 function signature(m) {
-  if (sigOf.has(m)) return sigOf.get(m);
-  const j = m.toJSON({ textures: {}, images: {} }); delete j.uuid; delete j.name;
-  const sig = JSON.stringify(j) + (m.onBeforeCompile?.toString() ?? '') + (m.customProgramCacheKey?.() ?? '');
-  sigOf.set(m, sig);
-  return sig;
+  if (!sigOf.has(m)) sigOf.set(m, matKey(m) + '|' + (m.customProgramCacheKey?.() ?? ''));
+  return sigOf.get(m);
 }
 
 // a mirrored part (negative scale) baked into plain geometry turns its triangles inside out: swap two corners
 // of each so they face the right way again
 export function flipWinding(g) {
+  if (g.index) {
+    const ix = g.index.array;
+    for (let t = 0; t + 2 < ix.length; t += 3) { const tmp = ix[t + 1]; ix[t + 1] = ix[t + 2]; ix[t + 2] = tmp; }
+    g.index.needsUpdate = true;
+    return;
+  }
   for (const a of Object.values(g.attributes)) {
     const n = a.itemSize, arr = a.array;
     for (let t = 0; t < a.count; t += 3) for (let e = 0; e < n; e++) {
@@ -26,6 +30,26 @@ export function flipWinding(g) {
     a.needsUpdate = true;
   }
 }
+
+// A copy of a geometry ready to merge, keeping its index: merging indexed geometry keeps every shared corner once
+// (expanding to one vertex per triangle corner made merged meshes about three times the size, in memory and on the
+// GPU). A geometry without an index gets the trivial one, so everything in a merge is indexed alike.
+export function indexedCopy(g) {
+  const c = g.clone();
+  if (!c.index) { const n = c.attributes.position.count, ix = n > 65535 ? new Uint32Array(n) : new Uint16Array(n); for (let i = 0; i < n; i++) ix[i] = i; c.setIndex(new THREE.BufferAttribute(ix, 1)); }
+  return c;
+}
+
+// Once a merged geometry is on the GPU nothing reads its arrays again (bounds are worked out before): drop the
+// JavaScript copy then, which halves what it costs in memory. Only for geometry that never changes afterwards.
+export function freeAfterUpload(g) {
+  const drop = function () { this.array = null; };
+  for (const a of Object.values(g.attributes)) a.onUpload(drop);
+  g.index?.onUpload(drop);
+}
+
+// Copies of one model (parked cars of a kind) merge to the very same geometry: keep one and share it.
+const MERGED = new Map();
 
 export function mergeVehicle(car, keep = []) {
   const units = new Set(keep.filter(Boolean));
@@ -54,17 +78,22 @@ function mergeUnit(root, units, live) {
   const m4 = new THREE.Matrix4();
   for (const { mat, attrs, list, mesh } of groups.values()) {
     if (list.length < 2) continue;
-    const geos = list.map((o) => {
-      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-      for (const k of Object.keys(g.attributes)) if (!attrs.includes(k)) g.deleteAttribute(k);
-      g.morphAttributes = {};
-      m4.multiplyMatrices(inv, o.matrixWorld); g.applyMatrix4(m4);
-      if (m4.determinant() < 0) flipWinding(g);
-      return g;
-    });
-    let merged = null;
-    try { merged = mergeGeometries(geos, false); } catch { merged = null; }
-    geos.forEach((g) => g.dispose());
+    // the same parts in the same places (another copy of this model): reuse what was merged for the first one
+    const key = attrs.join(',') + '|' + list.map((o) => { m4.multiplyMatrices(inv, o.matrixWorld); return o.geometry.uuid + ':' + m4.elements.map((e) => e.toFixed(4)).join(','); }).join(';');
+    let merged = MERGED.get(key) ?? null;
+    if (!merged) {
+      const geos = list.map((o) => {
+        const g = indexedCopy(o.geometry);
+        for (const k of Object.keys(g.attributes)) if (!attrs.includes(k)) g.deleteAttribute(k);
+        g.morphAttributes = {};
+        m4.multiplyMatrices(inv, o.matrixWorld); g.applyMatrix4(m4);
+        if (m4.determinant() < 0) flipWinding(g);
+        return g;
+      });
+      try { merged = mergeGeometries(geos, false); } catch { merged = null; }
+      geos.forEach((g) => g.dispose());
+      if (merged) { merged.computeBoundingSphere(); merged.computeBoundingBox(); freeAfterUpload(merged); MERGED.set(key, merged); }
+    }
     if (!merged) continue;
     const m = new THREE.Mesh(merged, mat);
     m.castShadow = mesh.castShadow; m.receiveShadow = mesh.receiveShadow; m.renderOrder = mesh.renderOrder; m.visible = mesh.visible;

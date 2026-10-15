@@ -2,13 +2,16 @@
 // mat(name, u, v, opts) returns a material whose texture repeats u × v times across a face.
 import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { setupKTX2, ktx2Loader } from './ktx2.js';
 
 export const SURFACES = ['asphalt_02', 'large_grey_tiles', 'concrete_floor_02', 'tiled_floor_001', 'concrete_wall_003', 'beige_wall_001', 'white_plaster_02', 'painted_plaster_wall', 'corrugated_iron', 'metal_plate',
   // interiors
   'wood_floor', 'laminate_floor_02', 'floor_tiles_06', 'interior_tiles', 'dirty_carpet', 'tatami_mat', 'ceiling_interior', 'dark_wood', 'wood_table', 'plastered_wall', 'long_white_tiles', 'linoleum_brown', 'fabric_leather_02'];
 
 export async function loadSurfaces(renderer, onProgress) {
-  const loader = new THREE.TextureLoader();
+  // KTX2 (Basis UASTC, see tools/ktx2-surfaces.mjs): stays compressed on the GPU; the images were flipped upright
+  // when encoded, as TextureLoader used to do on upload
+  const loader = ktx2Loader() ?? setupKTX2(renderer);
   const sets = {};
   let done = 0;
   const total = SURFACES.length + 1;
@@ -16,12 +19,13 @@ export async function loadSurfaces(renderer, onProgress) {
     const t = await loader.loadAsync(`assets/textures/${file}`);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = 8;
-    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    t.userData.keepData = true;   // copied for every repeat it's used at, each copy uploaded on its own
     return t;
   };
   await Promise.all(SURFACES.map(async (n) => {
     try {
-      const [diff, nor, arm] = await Promise.all([tex(`${n}_diff.jpg`, true), tex(`${n}_nor.jpg`), tex(`${n}_arm.jpg`)]);
+      const [diff, nor, arm] = await Promise.all([tex(`${n}_diff.ktx2`, true), tex(`${n}_nor.ktx2`), tex(`${n}_arm.ktx2`)]);
       sets[n] = { diff, nor, arm };
     } catch (e) { console.warn('[ameyoru] surface failed', n, e); }
     onProgress?.(++done / total);

@@ -1,5 +1,6 @@
 // Playable characters (VRM). Each one is loaded on demand, retargeted with the shared Mixamo clips, and cached.
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { withKTX2 } from './ktx2.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { loadMixamoClip } from './mixamo.js';
 import { tameHighlights } from './vrmtone.js';
@@ -50,7 +51,7 @@ const CLIPS = { idle: 'idle', walk: 'walk', run: 'run', look: 'idle_look', carIn
   push: 'button_push', pick: 'pick_up', talk: 'talking', open: 'open_door', text: 'texting', sing: 'singing', lie: 'lie_down', drink: 'drinking' };
 // clips that keep their own travel (the game lines the character up so the hips land where they should)
 const ROOTED = ['carIn', 'carOut', 'sitDown', 'sitIdle', 'standUp', 'drive', 'lie'];
-const loader = new GLTFLoader();
+const loader = withKTX2(new GLTFLoader());
 loader.register((parser) => new VRMLoaderPlugin(parser));
 const cache = new Map();
 

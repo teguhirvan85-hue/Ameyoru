@@ -5,10 +5,11 @@
 // don't fight the furniture each interior builds.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { withKTX2 } from './ktx2.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { canvasTex, JP_FONT } from './textures.js';
 
-const loader = new GLTFLoader();
+const loader = withKTX2(new GLTFLoader());
 const cache = new Map();
 // per model: extra yaw so its front faces +z, and scale
 const FIX = {};
