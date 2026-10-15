@@ -5,6 +5,8 @@
 // Every sound has a synthesized version; when a real recording is listed in assets/audio/files.json it is used instead.
 import { Music } from './music.js';
 import { MOBILE } from './device.js';
+// the recorded room ambiences a phone does without (each is a minute or more of sound once decoded)
+const PHONE_SKIP = new Set(['station', 'izakaya', 'konbini', 'ramen', 'kissa', 'laundry', 'pachinko', 'arcade', 'insects', 'birds']);
 
 // recordings that can replace the synthesized sounds: slot → file in assets/audio (only those in files.json load)
 export const SLOTS = {
@@ -161,12 +163,16 @@ export class Sound {
   async loadFiles() {
     let list = [];
     try { const r = await fetch('assets/audio/files.json', { cache: 'no-store' }); if (r.ok) list = await r.json(); } catch { /* no recordings yet */ }
-    await Promise.all(list.map(async ({ slot, file, gain = 1 }) => {
+    // a phone keeps the street's own sounds (rain, steps, trains, doors) and leaves the long room ambiences to the
+    // synthesised ones; it decodes them one at a time, so they never all sit in memory half-decoded together
+    if (MOBILE) list = list.filter(({ slot }) => !PHONE_SKIP.has(slot));
+    const one = async ({ slot, file, gain = 1 }) => {
       try {
         const buf = await this.ctx.decodeAudioData(await (await fetch(`assets/audio/${file}`)).arrayBuffer());
         this.files[slot] = { buf, gain, hits: SLOTS[slot] === 'steps' ? this.onsets(buf) : null };
       } catch (e) { console.warn('[ameyoru] audio file failed', file, e); }
-    }));
+    };
+    if (MOBILE) for (const f of list) await one(f); else await Promise.all(list.map(one));
     this.music.files = this.files;
     this.startFileLoops();
     if (list.length) console.info('[ameyoru] audio files', Object.keys(this.files).join(', '));

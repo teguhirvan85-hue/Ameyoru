@@ -17,7 +17,7 @@ import { MOBILE } from './device.js';
 export const NPC_MODELS = ['npc_d', 'npc_e', 'npc_f', 'npc_g', 'npc_fumiriya', 'npc_shino'];
 const PER_MODEL = MOBILE ? 1 : 2;   // instances of each model (12 in all; 6 on a phone)
 const RANGE = 22;             // slots further than this keep their stand-in
-const ACTIVE = MOBILE ? 5 : 8;   // at most this many characters at once (each VRoid model is ~80 meshes)
+const ACTIVE = MOBILE ? 3 : 8;   // at most this many characters at once (each VRoid model is ~80 meshes)
 const NEAR = 10;              // hair and skirts only swing (spring bones) on characters this close
 // the clips a character may need, by what the slot is for
 const CLIPS = { idle: 'idle', look: 'idle_look', talk: 'talking', sit: 'sit_idle', text: 'texting', push: 'button_push', drink: 'drinking' };

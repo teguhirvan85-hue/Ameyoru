@@ -17,7 +17,7 @@ import { tameHighlights } from './vrmtone.js';
 import { shareModelTextures } from './vrmshare.js';
 import { MOBILE } from './device.js';
 
-const BODIES = MOBILE ? 8 : 18;   // characters that can be on screen at once (fewer on a phone)
+const BODIES = MOBILE ? 5 : 18;   // characters that can be on screen at once (fewer on a phone)
 const SEE = 45;             // walkers closer than this get a body (+6 m to keep one)
 const R = 0.3;              // how much room a walker takes
 const FEMALE = new Set(['npc_fumiriya', 'npc_shino']);

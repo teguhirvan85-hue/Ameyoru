@@ -305,7 +305,7 @@ async function boot() {
   });
   ui.progress(0.75, 'Bringing down the rain…'); await frame();
   const tRain = ui.task('雨', 'Rain, puddles & weather');
-  rain = new Rain(scene, groundY);
+  rain = new Rain(scene, groundY, MOBILE ? 3500 : undefined);   // half the drops on a phone (each is moved every frame)
   rain.surfaces = world.rainSurfaces; rain.edges = world.rainEdges;
   rain.covers = ROOMS;
   world.fx.splash = (x, y, z, n) => rain.splashAt(x, y, z, n);
@@ -1021,9 +1021,10 @@ function applyAtmos() {
   // up on the Sky Deck the whole town is in view: draw it further out (the haze is thinner up there too, indoorK)
   const deck = player && roomAt(player.group.position)?.amb === 'skydeck';
   // (and the street puddles' mirror is no use from up there)
-  if (deck !== onDeck) { onDeck = deck; world.setReflections(deck ? false : QUALITY[quality].reflect); }
+  if (deck !== onDeck) { onDeck = deck; world.setReflections(deck ? false : QUALITY[quality].reflect && !MOBILE); }
   NORTH.setMist?.(Math.max(bell(clockMin(), 330, 120) * (1 - 0.85 * daylight), w.fog > 0.05 ? 0.8 : 0));
-  world.setCull(deck ? 230 : THREE.MathUtils.clamp(1.8 / fog, 50, 140) * (quality === 0 ? 0.8 : 1));
+  // (a phone draws a shorter way out — the fog hides it — so less of the town is on its GPU at once)
+  world.setCull(deck ? (MOBILE ? 120 : 230) : THREE.MathUtils.clamp(1.8 / fog, 50, 140) * (quality === 0 ? 0.8 : 1) * (MOBILE ? 0.6 : 1));
   scene.fog.color.lerpColors(NIGHT_FOG, DAWN_FOG, daylight).lerp(WARM_FOG, warm * 0.5); scene.background.lerpColors(NIGHT_BG, DAWN_BG, daylight);
   // the sun's path: up in the east at 06:00, high at noon, down in the west at 18:00
   const a = ((clockMin() - 360) / 720) * Math.PI;
@@ -1054,7 +1055,7 @@ function setQuality(i, announce = true) {
   const q = QUALITY[quality];
   renderer.setPixelRatio(q.pr); composer.setPixelRatio(q.pr); composer.setSize(innerWidth, innerHeight);
   bloom.enabled = q.bloom;
-  world.setReflections(q.reflect);
+  world.setReflections(q.reflect && !MOBILE);   // no road mirror on a phone: it draws the whole town a second time
   applyAtmos();
   let changed = false;
   world.setShadows(q.shadows && !MOBILE); changed = true;   // no moving shadows on a phone: half the shader programs
@@ -1220,7 +1221,7 @@ function foley(dt) {
 }
 // ---------- settings: from the pause menu, the title screen (and O, which opens the sound tab) ----------
 const SET_KEY = 'ameyoru.settings';
-const SET_DEFAULT = { fov: 0, dof: true, lens: true, fps: false, sens: 1, invertY: false, help: true, minimap: true };
+const SET_DEFAULT = { fov: 0, dof: !MOBILE, lens: true, fps: false, sens: 1, invertY: false, help: true, minimap: true };
 const settings = { ...SET_DEFAULT, ...(() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch { return {}; } })() };
 const saveSettings = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch { /* storage unavailable */ } };
 function applySettings() {
