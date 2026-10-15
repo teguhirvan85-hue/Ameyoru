@@ -4,6 +4,7 @@
 // Things in the world can be positional emitters (a crossing bell, a train, a shop's noise leaking out).
 // Every sound has a synthesized version; when a real recording is listed in assets/audio/files.json it is used instead.
 import { Music } from './music.js';
+import { MOBILE } from './device.js';
 
 // recordings that can replace the synthesized sounds: slot → file in assets/audio (only those in files.json load)
 export const SLOTS = {
@@ -50,7 +51,8 @@ export class Sound {
     if (this.ctx) { this.ctx.resume(); return; }
     const C = window.AudioContext || window.webkitAudioContext;
     if (!C) return;
-    const ctx = this.ctx = new C();
+    // on a phone, every sound file decoded at half the rate takes half the memory (ambience is soft-edged anyway)
+    const ctx = this.ctx = MOBILE ? new C({ sampleRate: 24000 }) : new C();
     this.master = ctx.createGain(); this.master.gain.value = this.muted ? 0 : this.vol.master;
     // a gentle limiter so a train, a bell and the music together never clip
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2;

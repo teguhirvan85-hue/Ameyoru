@@ -44,7 +44,7 @@ renderer.setPixelRatio(MOBILE ? 1 : Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !MOBILE;   // (phones: no moving shadows, see setQuality)
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // refreshed every other frame in loop()
 
@@ -1057,7 +1057,7 @@ function setQuality(i, announce = true) {
   world.setReflections(q.reflect);
   applyAtmos();
   let changed = false;
-  world.setShadows(q.shadows); changed = true;
+  world.setShadows(q.shadows && !MOBILE); changed = true;   // no moving shadows on a phone: half the shader programs
   if (changed) scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
   if (announce) { save('ameyoru.quality', quality); ui.toast(`Graphics: ${q.name} · G`); }
 }
@@ -1118,7 +1118,8 @@ async function prepareAll() {
     camera.layers.enable(1);
   }
   const aoWas = ao.enabled; ao.enabled = quality >= 2;
-  try { await renderer.compileAsync(scene, camera); } catch { renderer.compile(scene, camera); }
+  // (a phone compiles each shader when it's first needed: all ~360 at once is another spike it can't take)
+  if (!MOBILE) { try { await renderer.compileAsync(scene, camera); } catch { renderer.compile(scene, camera); } }
   ui.progress(0.98, 'Preparing HD graphics…'); await frame();
   scene.updateMatrixWorld();
   renderer.shadowMap.needsUpdate = true;

@@ -1,5 +1,6 @@
 // Loads the Poly Haven (CC0) props in /assets and places them as instanced meshes.
 import * as THREE from 'three';
+import { MOBILE } from './device.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { withKTX2 } from './ktx2.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
@@ -107,13 +108,16 @@ export async function loadAssets(onProgress) {
   const cars = {};
   let done = 0;
   const props = {}, clips = {};
-  const total = FILES.length + Object.keys(PACKS).length + Object.keys(CARS_CFG).length + Object.keys(PROPS_CFG).length;
-  await Promise.all(Object.entries(PROPS_CFG).map(async ([k, c]) => {
+  // on a phone, the heaviest models stay out (the 911 is ~500k vertices, the vending machines ~100k with 2K
+  // textures): the street gets the game's own vending machines and a taxi in the 911's spot instead
+  const SKIP = MOBILE ? new Set(['porsche_911', 'vending_a', 'vending_b']) : new Set();
+  const total = FILES.length + Object.keys(PACKS).length + [...Object.keys(CARS_CFG), ...Object.keys(PROPS_CFG)].filter((k) => !SKIP.has(k)).length;
+  await Promise.all(Object.entries(PROPS_CFG).filter(([k]) => !SKIP.has(k)).map(async ([k, c]) => {
     try { const g = await loader.loadAsync(`assets/${c.file}`); props[k] = prepareProp(g.scene, c); if (c.anim) clips[k] = g.animations; }
     catch (e) { console.warn('[ameyoru] prop failed', k, e); }
     onProgress?.(++done / total);
   }));
-  await Promise.all(Object.entries(CARS_CFG).map(async ([k, c]) => {
+  await Promise.all(Object.entries(CARS_CFG).filter(([k]) => !SKIP.has(k)).map(async ([k, c]) => {
     try { cars[k] = prepareCar((await loader.loadAsync(`assets/${c.file}`)).scene, c); addPlates(cars[k], k); }
     catch (e) { console.warn('[ameyoru] car failed', k, e); }
     onProgress?.(++done / total);
