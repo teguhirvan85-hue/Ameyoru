@@ -35,6 +35,7 @@ import { NORTH } from './north.js';
 import { makeQuests } from './quests.js';
 import { setupKTX2 } from './ktx2.js';
 import { MOBILE } from './device.js';
+import { makeDiag } from './diag.js';
 import { makeTouch } from './touch.js';
 
 const canvas = document.getElementById('c');
@@ -230,6 +231,10 @@ const film = new ShaderPass({
 composer.addPass(film);
 
 const ui = new UI(), input = new Input(), sound = new Sound();
+// ?diag=1: frame rate and GPU counts in the corner, and what they were when a phone last closed the page (diag.js)
+const diag = makeDiag(renderer);
+{ const task = ui.task.bind(ui); ui.task = (jp, what) => { diag.stage(what); return task(jp, what); }; }
+let diagMode = null;
 let lensK = 0;
 let world, rain, player, driving, npcs, minimap, walkers, economy, places, router, guide, mode = 'loading', t = 0, lastView = 'chase';
 
@@ -1079,6 +1084,7 @@ let frameNo = 0;
 function loop() {
   requestAnimationFrame(loop);
   step(Math.min(clock.getDelta(), 0.05));
+  diag.frame(); if (mode !== diagMode) { diagMode = mode; diag.stage(mode); }
 }
 // ---------- getting everything ready behind the loading screen ----------
 async function prepareAll() {
