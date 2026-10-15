@@ -5,7 +5,15 @@ const $ = (id) => document.getElementById(id);
 export class UI {
   constructor() {
     this.dialogOpen = false; this.typing = false;
-    $('dialog').addEventListener('click', () => this.advance());
+    // a tap on the box: the next line — or, when it's a choice, the option tapped (phones have no arrow keys)
+    $('dialog').addEventListener('click', (e) => {
+      if (this.choice) {
+        const o = e.target.closest?.('.opt'); if (!o) return;
+        this.choice.i = +o.dataset.i; this.choiceInput(false, false, true);
+        return;
+      }
+      this.advance();
+    });
   }
   progress(p, msg) {
     $('bar').style.width = `${p * 100}%`; $('loadpct').textContent = `${Math.round(p * 100)}%`;
@@ -97,6 +105,8 @@ export class UI {
   toggleControls() { $('controls').classList.toggle('hidden'); }
   setMuted(m) { $('mute').classList.toggle('hidden', !m); }
   toast(text) {
+    // on a touch screen, leave off the key that does it (" · R")
+    if (document.body.classList.contains('touch')) text = text.replace(/ · [A-Z]$/, '');
     const el = $('toast'); el.textContent = text; el.classList.remove('hidden', 'out');
     clearTimeout(this.toastT); this.toastT = setTimeout(() => el.classList.add('out'), 1800);
   }
@@ -121,7 +131,7 @@ export class UI {
   }
   renderChoice() {
     const c = this.choice;
-    $('dtext').innerHTML = c.options.map((o, i) => `<div class="opt${i === c.i ? ' sel' : ''}">${i === c.i ? '▸ ' : '&nbsp;&nbsp;'}${o}</div>`).join('');
+    $('dtext').innerHTML = c.options.map((o, i) => `<div class="opt${i === c.i ? ' sel' : ''}" data-i="${i}">${i === c.i ? '▸ ' : '&nbsp;&nbsp;'}${o}</div>`).join('');
   }
   choiceInput(up, down, pick) {
     const c = this.choice; if (!c) return false;

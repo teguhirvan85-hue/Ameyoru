@@ -466,6 +466,12 @@ function menuInput(dt) {
   cam.dist += (2.7 - cam.dist) * Math.min(1, dt * 4);
 }
 
+// on a touch screen the controls lists show the on-screen controls (touch.js) instead of keys
+const TOUCH = document.body.classList.contains('touch') || matchMedia('(pointer: coarse)').matches;
+const TOUCH_KEYS = [['Left stick', 'Walk · push all the way to run · steer'], ['Drag (right side)', 'Look around'], ['E', 'Look · talk · use · get in a car'],
+  ['Tap the prompt', 'The same as E'], ['V', 'Camera: eyes / behind'], ['⌖', 'Town map (pinch to zoom, tap to mark)'], ['◉', 'Photo mode'], ['☰', 'Items & jobs'],
+  ['❚❚', 'Pause: character, weather, time, settings']];
+
 // ---------- title menu ----------
 const tmenu = { i: 0, panel: null };
 const TITLE_ACTS = ['start', 'settings', 'controls', 'credits'];
@@ -477,12 +483,12 @@ function titlePanel(kind) {
   if (!kind || tmenu.panel === kind) { tmenu.panel = null; el.classList.add('hidden'); return; }
   tmenu.panel = kind; el.classList.remove('hidden');
   if (kind === 'controls') {
-    const K = [['W A S D', 'Walk / steer'], ['Shift', 'Run'], ['Mouse', 'Turn camera'], ['E', 'Look · talk · get in a car'], ['V', 'Camera: eyes / behind'],
+    const K = TOUCH ? TOUCH_KEYS : [['W A S D', 'Walk / steer'], ['Shift', 'Run'], ['Mouse', 'Turn camera'], ['E', 'Look · talk · get in a car'], ['V', 'Camera: eyes / behind'],
       ['C', 'Change character & outfit'], ['Tab', 'Town map'], ['P', 'Photo mode'], ['I', 'Items & jobs'], ['R', 'Change weather'], ['J', 'Skip time'], ['T', 'Speed up time (hold)'],
       ['G', 'Graphics quality'], ['O', 'Volume'], ['M', 'Sound on/off'], ['H', 'Controls panel']];
-    el.innerHTML = `<h3>Controls</h3>${K.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')}`;
+    el.innerHTML = `<button class="x" data-close aria-label="Close">✕</button><h3>Controls</h3>${K.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')}`;
   } else {
-    el.innerHTML = `<h3>Credits</h3>
+    el.innerHTML = `<button class="x" data-close aria-label="Close">✕</button><h3>Credits</h3>
       <p><b>Ameyoru</b> — a rainy night in Hoshimi.</p>
       <p><b>Characters</b> · VRoid Project (pixiv), 6, siroihakumai — VRoid Hub. Animation: Adobe Mixamo.</p>
       <p><b>Vehicles</b> · Karol Miklas, Kucing Garage, Doz3, BHP3D, Romanov_13, Alvin.Woodly, Nieve5677, SIU Car Garage, by__Rx, ProPolyModels — Sketchfab (CC BY).</p>
@@ -490,6 +496,7 @@ function titlePanel(kind) {
       <p><b>Sound</b> · Freesound (CC0).</p>`;
   }
 }
+document.getElementById('tpanel').addEventListener('click', (e) => { if (e.target.closest('[data-close]')) titlePanel(null); });
 function titleAct(act) {
   if (act === 'start') start();
   else if (act === 'settings') { titlePanel(null); openSettings(null); }
@@ -533,7 +540,8 @@ function setMark(pt) {
     routeT = 0;
   } else { markPt = null; route = null; }
   minimap.setMark(markPt); minimap.setRoute(route);
-  $('mpMark').innerHTML = markPt ? `Mark · <b>${markPt.name}</b> · ${Math.round(Math.hypot(markPt.x - here().x, markPt.z - here().z))} m · right-click to clear` : 'No mark · click the map to set one';
+  $('mpMark').innerHTML = markPt ? `Mark · <b>${markPt.name}</b> · ${Math.round(Math.hypot(markPt.x - here().x, markPt.z - here().z))} m${TOUCH ? '' : ' · right-click to clear'}` : `No mark · ${TOUCH ? 'tap' : 'click'} the map to set one`;
+  $('mpClear').classList.toggle('hidden', !markPt);
   renderMapList();
 }
 function wayTick(dt) {
@@ -553,9 +561,20 @@ function wayTick(dt) {
   const inRoom = roomAt(player.group.position);   // the covered arcades count as outdoors here
   guide.update(dt, route, markPt, p, outside && (!inRoom || inRoom.amb === 'shotengai'));
 }
+// buttons for the map, the character menu and the settings (what Tab, Esc, C, Space and the right mouse button do)
+$('mpClose').addEventListener('click', () => openMap(false));
+$('mpMe').addEventListener('click', () => minimap.centreOnYou());
+$('mpClear').addEventListener('click', () => setMark(null));
+$('mpPlaces').addEventListener('click', () => $('bigmap').classList.toggle('list-open'));
+$('cmClose').addEventListener('click', () => { if (menu.open) closeMenu(); });
+$('stClose').addEventListener('click', () => { if (stUI.open) closeSettings(); });
+// tapping the "E · …" prompt does what E does; tapping the opening shot skips it
+$('prompt').addEventListener('click', () => input.pressed.add('KeyE'));
+$('cine').addEventListener('click', () => { if (mode === 'intro' && introT > 0.4) finishIntro(); });
 // the big map: open/close; the list of places down its side
 function openMap(v) {
   minimap.toggle(v);
+  if (!v) $('bigmap').classList.remove('list-open');
   if (v) { renderMapList(); setMark(markPt ? { x: markPt.x, z: markPt.z } : null); if (document.pointerLockElement) document.exitPointerLock(); }
   else if (mode === 'play') lockPointer();
 }
@@ -572,7 +591,7 @@ function renderMapList() {
       const f = places.has(q.id) || !!q.always, b = document.createElement('button');
       b.className = 'mp-pl' + (f ? '' : ' unk') + (q.kind === 'love' ? ' love' : '') + (markPt?.id === q.id ? ' marked' : '');
       b.innerHTML = f ? `<span class="ic">${KIND_ICON[q.kind]}</span><span>${q.name}</span><span class="jp">${q.jp}</span>` : '<span class="ic">?</span><span>???</span><span></span>';
-      if (f && q.x !== null) b.addEventListener('click', () => { setMark({ x: q.x, z: q.z }); minimap.centre(q.x, q.z); });
+      if (f && q.x !== null) b.addEventListener('click', () => { setMark({ x: q.x, z: q.z }); minimap.centre(q.x, q.z); $('bigmap').classList.remove('list-open'); });
       else if (f) b.title = q.d === 'tsukino' ? 'In Tsukino — take the train from Hoshimi Station' : 'Somewhere up high';
       box.appendChild(b);
     }
@@ -1328,7 +1347,7 @@ function settingsInput() {
 
 // ---------- pause (Esc): the town stops; resume, the map, settings, controls, back to the title ----------
 const pz = { i: 0, note: 'night' };
-const PZ_ACTS = ['resume', 'map', 'settings', 'controls', 'title'];
+const PZ_ACTS = ['resume', 'map', 'character', 'weather', 'time', 'settings', 'controls', 'title'];
 const JOB_LIST = [['taxi', 'Hungry taxi driver'], ['umbrella', "Mrs. Sato's blue umbrella"], ['letter', "Grandpa Mori's letter"], ['cat', 'Mochi ran off']];
 function renderPause() {
   document.querySelectorAll('#pzMenu button').forEach((b, i) => b.classList.toggle('sel', i === pz.i));
@@ -1336,11 +1355,13 @@ function renderPause() {
   $('pzSub').textContent = ui.locSub || '';
   const note = $('pzNote');
   if (pz.note === 'controls') {
-    const K = [['W A S D', 'Walk / steer'], ['Shift', 'Run'], ['E', 'Look · talk · car'], ['V', 'Camera: eyes / behind'], ['C', 'Character & outfit'],
+    const K = TOUCH ? TOUCH_KEYS : [['W A S D', 'Walk / steer'], ['Shift', 'Run'], ['E', 'Look · talk · car'], ['V', 'Camera: eyes / behind'], ['C', 'Character & outfit'],
       ['Tab', 'Town map'], ['P', 'Photo mode'], ['I', 'Items & jobs'], ['R', 'Weather · radio in the car'], ['J', 'Skip time'], ['T', 'Speed up time'], ['G', 'Graphics quality'], ['O', 'Sound'], ['M', 'Mute']];
-    note.innerHTML = `<h3>Controls</h3>${K.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')}`;
+    note.innerHTML = `<button class="x" data-close aria-label="Close">✕</button><h3>Controls</h3>${K.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')}`;
+    note.classList.add('show');   // (on a narrow screen it only shows when asked for)
     return;
   }
+  note.classList.remove('show');
   const st = economy?.st, steps = st?.jobs || {};
   const done = JOB_LIST.filter(([id]) => steps[id] === 'done').length;
   note.innerHTML = `<h3>Tonight's notes</h3>
@@ -1369,10 +1390,15 @@ function closePause(lock = true) {
 function pauseAct(act) {
   if (act === 'resume') closePause();
   else if (act === 'map') { closePause(false); openMap(true); }
+  // what C, R and J do, for a phone (and anyone in the menu)
+  else if (act === 'character') { closePause(false); openMenu(); }
+  else if (act === 'weather') { setWeather((weather + 1) % WEATHER.length); renderPause(); }
+  else if (act === 'time') jumpTime();
   else if (act === 'settings') { $('pause').classList.add('hidden'); openSettings(() => { $('pause').classList.remove('hidden'); renderPause(); }); }
   else if (act === 'controls') { pz.note = pz.note === 'controls' ? 'night' : 'controls'; renderPause(); }
   else if (act === 'title') backToTitle();
 }
+$('pzNote').addEventListener('click', (e) => { if (e.target.closest('[data-close]')) { pz.note = 'night'; renderPause(); } });
 document.querySelectorAll('#pzMenu button').forEach((b, i) => {
   b.addEventListener('mouseenter', () => { pz.i = i; renderPause(); });
   b.addEventListener('click', () => { pz.i = i; pauseAct(PZ_ACTS[i]); });

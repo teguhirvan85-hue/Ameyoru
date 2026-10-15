@@ -187,15 +187,40 @@ export function makeMinimap(world) {
     view.cz = Math.min(Math.max(view.cz, Z0 + Math.min(hh, (Z1 - Z0) / 2)), Z1 - Math.min(hh, (Z1 - Z0) / 2));
   };
   let drag = null;
-  bcv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false, btn: e.button }; bcv.setPointerCapture(e.pointerId); });
+  // two fingers on the map: pinch to zoom about the point between them (a phone has no mouse wheel)
+  const touches = new Map();
+  let pinch = null;
+  bcv.addEventListener('pointerdown', (e) => {
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size === 2) {
+      const [a, b] = [...touches.values()], r = bcv.getBoundingClientRect();
+      const sx = ((a.x + b.x) / 2 - r.left) * dpr, sy = ((a.y + b.y) / 2 - r.top) * dpr;
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: view.s, wx: toWX(sx), wz: toWZ(sy) };
+      if (drag) drag.moved = true;   // a pinch is never a tap
+      return;
+    }
+    drag = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false, btn: e.button }; bcv.setPointerCapture(e.pointerId);
+  });
+  const lift = (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; };
+  bcv.addEventListener('pointercancel', (e) => { lift(e); drag = null; });
   bcv.addEventListener('pointermove', (e) => {
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && touches.size === 2) {
+      const [a, b] = [...touches.values()], r = bcv.getBoundingClientRect();
+      const sx = ((a.x + b.x) / 2 - r.left) * dpr, sy = ((a.y + b.y) / 2 - r.top) * dpr;
+      view.s = pinch.s * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.d); clampView();
+      // keep the point that was between the fingers under them
+      view.cx = pinch.wx - (sx - bcv.width / 2) / view.s; view.cz = pinch.wz + (sy - bcv.height / 2) / view.s; clampView();
+      return;
+    }
     if (!drag) return;
     const dx = (e.clientX - drag.x) * dpr, dy = (e.clientY - drag.y) * dpr;
     if (Math.hypot(dx, dy) > 5 * dpr) { drag.moved = true; bcv.classList.add('drag'); }
     if (drag.moved) { view.cx = drag.cx - dx / view.s; view.cz = drag.cz + dy / view.s; clampView(); }
   });
   bcv.addEventListener('pointerup', (e) => {
-    if (!drag) return;
+    lift(e);
+    if (!drag || touches.size) return;
     const r = bcv.getBoundingClientRect();
     if (!drag.moved) {
       if (drag.btn === 2) onMark?.(null);

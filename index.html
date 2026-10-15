@@ -62,7 +62,7 @@
     <div class="cine-black"></div>
     <div class="cine-bar top"></div><div class="cine-bar bot"></div>
     <div id="cineCard"><div class="jp">星見通り</div><div class="en">HOSHIMI-DORI</div><div class="sub" id="cineSub"></div></div>
-    <div class="cine-skip"><kbd>Enter</kbd> skip</div>
+    <div class="cine-skip"><span class="key-only"><kbd>Enter</kbd> skip</span><span class="touch-only">Tap to skip</span></div>
   </div>
 
   <div id="hud" class="hidden">
@@ -97,7 +97,7 @@
     <div id="dialog" class="hidden">
       <div id="who"></div>
       <div id="dtext"></div>
-      <div class="next">E ▸</div>
+      <div class="next"><span class="key-only">E ▸</span><span class="touch-only">Tap ▸</span></div>
     </div>
 
     <canvas id="minimap"></canvas>
@@ -106,6 +106,13 @@
       <div class="mp-head">
         <div class="mp-ttl"><span class="jp">星見市地図</span><b>HOSHIMI · CITY MAP</b></div>
         <div class="mp-mark" id="mpMark">No mark · click the map to set one</div>
+        <!-- buttons for what the keys and the right mouse button do (phones have neither) -->
+        <div class="mp-tools">
+          <button id="mpPlaces" class="touch-only">Places</button>
+          <button id="mpMe">◎ Me</button>
+          <button id="mpClear" class="hidden">Clear mark</button>
+          <button id="mpClose" class="x" aria-label="Close the map">✕</button>
+        </div>
       </div>
       <div class="mp-body">
         <div class="mp-view">
@@ -131,6 +138,7 @@
       <div class="cm-head">
         <div class="ttl">Change character</div>
         <div class="cm-hint"><kbd>←</kbd><kbd>→</kbd> choose<span id="cmSkinHint" class="hidden"> · <kbd>↑</kbd><kbd>↓</kbd> skin</span> · <kbd>Enter</kbd> wear · <kbd>C</kbd> close</div>
+        <button id="cmClose" class="x" aria-label="Close">✕</button>
       </div>
       <div id="cards"></div>
       <div id="skins" class="hidden"></div>
@@ -147,6 +155,9 @@
       <nav id="pzMenu">
         <button data-act="resume"><span>Resume</span><em>つづける</em></button>
         <button data-act="map"><span>Town map</span><em>ちず</em></button>
+        <button data-act="character"><span>Character</span><em>キャラ</em></button>
+        <button data-act="weather"><span>Change weather</span><em>てんき</em></button>
+        <button data-act="time"><span>Skip time</span><em>じかん</em></button>
         <button data-act="settings"><span>Settings</span><em>せってい</em></button>
         <button data-act="controls"><span>Controls</span><em>そうさ</em></button>
         <button data-act="title"><span>Back to title</span><em>タイトル</em></button>
@@ -162,6 +173,7 @@
       <div class="st-head">
         <div class="st-ttl">Settings <em>せってい</em></div>
         <div class="st-tabs" id="stTabs"></div>
+        <button id="stClose" class="x" aria-label="Back">✕</button>
       </div>
       <div id="stRows"></div>
       <div class="st-foot">

@@ -257,7 +257,7 @@ kbd {
 .card .nm { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 6px; font-size: 13px; font-weight: 700;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.75)); }
 .card.sel { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 6px 20px rgba(92, 200, 255, 0.25); }
-.card.on::after { content: 'Dipakai'; position: absolute; top: 6px; left: 6px; font-size: 10px; font-weight: 700; padding: 2px 7px;
+.card.on::after { content: 'Wearing'; position: absolute; top: 6px; left: 6px; font-size: 10px; font-weight: 700; padding: 2px 7px;
   border-radius: 999px; background: var(--accent); color: #06121f; }
 .card.busy::before { content: ''; position: absolute; inset: 0; background: rgba(5, 8, 16, 0.55)
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%235cc8ff' stroke-width='3' stroke-dasharray='40 20'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='0.9s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/svg%3E") center / 32px no-repeat; }
@@ -312,7 +312,9 @@ kbd {
 .pz-card .job b { font-weight: 600; } .pz-card .job i { font-style: normal; color: var(--muted); font-size: 12px; }
 .pz-card .job .mk { font: 700 12px var(--mono); color: var(--muted); }
 .pz-card .job.done .mk { color: var(--accent); } .pz-card .job.done b { color: var(--muted); text-decoration: line-through; }
-@media (max-width: 760px) { .pz-card { display: none; } }
+@media (max-width: 760px) { .pz-card { display: none; } .pz-card.show { display: block; position: fixed; left: 12px; right: 12px; bottom: 12px; width: auto; max-height: 72vh; overflow: auto; z-index: 17; background: rgba(8, 12, 24, .96); } }
+.pz-card { position: relative; }
+.pz-card button.x { position: absolute; top: 10px; right: 10px; }
 
 /* ---------- settings ---------- */
 #settings { position: fixed; inset: 0; z-index: 17; display: flex; align-items: center; justify-content: center; padding: 16px;
@@ -422,3 +424,49 @@ body.touch #minimap { top: 70px; bottom: auto; right: 14px; width: 120px; height
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 #phbar .shoot { width: 64px; height: 64px; margin-top: -6px; background: rgba(255, 181, 71, .3); border-color: var(--warm); font-size: 26px; }
 @media (max-width: 560px) { #photo { top: 90px; bottom: auto; max-height: 55vh; } }
+
+/* ---------- touch screens: buttons for what the keys do, and no key hints ---------- */
+.touch-only { display: none !important; }
+body.touch .touch-only { display: inline-flex !important; }
+body.touch .key-only, body.touch .t-keys, body.touch .pz-keys, body.touch .st-keys, body.touch .mp-keys, body.touch .cm-hint { display: none !important; }
+/* a round close button, top right of the panel it's in */
+button.x { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink);
+  font: 600 15px var(--ui); line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+button.x:hover { background: rgba(255, 255, 255, .14); }
+body.touch button.x { width: 42px; height: 42px; font-size: 17px; }
+#tpanel { position: absolute; }
+#tpanel button.x { position: absolute; top: 10px; right: 10px; }
+.cm-head #cmClose { margin-left: auto; }
+.st-head { position: relative; }
+.st-head #stClose { position: absolute; top: 0; right: 0; }
+/* the map's buttons */
+.mp-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.mp-tools button:not(.x) { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); font: 600 12px var(--ui); letter-spacing: .04em; cursor: pointer; }
+.mp-tools button:not(.x):hover { background: rgba(255, 255, 255, .14); }
+.mp-tools button.hidden { display: none; }
+#bigmapCanvas { touch-action: none; }
+/* small screens: the places list opens over the map (Places) */
+@media (max-width: 760px) {
+  .mp-body { position: relative; }
+  #bigmap.list-open .mp-side { display: flex; position: absolute; inset: 0 0 0 auto; width: min(320px, 100%); z-index: 2; background: rgba(8, 12, 24, .96); }
+  .mp-ttl b { display: none; }
+  .mp-mark { order: 3; width: 100%; }
+  #bigmap .legend { font-size: 11px; gap: 4px 10px; }
+}
+/* tappable choices */
+#dialog .opt { cursor: pointer; }
+body.touch #dialog .opt { padding: 7px 0; }
+/* the dialog and the "E · …" prompt sit above the on-screen stick and buttons, and over them */
+body.touch #hud { z-index: 12; }
+body.touch #dialog { bottom: 256px; width: calc(100vw - 24px); padding: 14px 16px 26px; }
+body.touch #dtext { font-size: 15px; }
+body.touch #prompt { bottom: 256px; pointer-events: auto; cursor: pointer; }
+@media (orientation: landscape) and (max-height: 520px) {
+  body.touch #dialog { bottom: auto; top: 10px; width: min(560px, calc(100vw - 340px)); }
+  body.touch #prompt { bottom: auto; top: 12px; }
+}
+/* settings tabs: slide sideways when they don't all fit (a phone) */
+.st-tabs { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.st-tabs::-webkit-scrollbar { display: none; }
+.st-head { padding-right: 46px; }
+@media (max-width: 420px) { .st-tabs button { padding: 9px 9px 11px; } }
