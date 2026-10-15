@@ -1,0 +1,8 @@
+# Mixamo downloads: the game uses the baked clips (assets/anims/*.json, tools/bake-anims.mjs); the raw FBX files
+# may not be redistributed, so they stay local
+*.fbx
+# local only
+.claude/
+screenshots-desy/
+node_modules/
+.DS_Store

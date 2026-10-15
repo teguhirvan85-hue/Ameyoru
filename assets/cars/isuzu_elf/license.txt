@@ -1,0 +1,11 @@
+Model Information:
+* title:	Isuzu Elf series
+* source:	https://sketchfab.com/3d-models/isuzu-elf-series-070bc8b65a224ca89a03bb6d67e22edc
+* author:	Romanov_13 (https://sketchfab.com/Romanov13)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Isuzu Elf series" (https://sketchfab.com/3d-models/isuzu-elf-series-070bc8b65a224ca89a03bb6d67e22edc) by Romanov_13 (https://sketchfab.com/Romanov13) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

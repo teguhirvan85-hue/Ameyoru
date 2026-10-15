@@ -1,0 +1,11 @@
+Model Information:
+* title:	Low Poly 2013 Toyota HiAce
+* source:	https://sketchfab.com/3d-models/low-poly-2013-toyota-hiace-f83b4ed4d8534efb81def77b6c1b642d
+* author:	Alvin.Woodly (https://sketchfab.com/Alvin.Woodly)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Low Poly 2013 Toyota HiAce" (https://sketchfab.com/3d-models/low-poly-2013-toyota-hiace-f83b4ed4d8534efb81def77b6c1b642d) by Alvin.Woodly (https://sketchfab.com/Alvin.Woodly) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

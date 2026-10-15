@@ -1,0 +1,11 @@
+Model Information:
+* title:	Toyota JPN Taxi
+* source:	https://sketchfab.com/3d-models/toyota-jpn-taxi-4868854a744042bca248c38bfddd6441
+* author:	Nieve5677 (https://sketchfab.com/niev)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Toyota JPN Taxi" (https://sketchfab.com/3d-models/toyota-jpn-taxi-4868854a744042bca248c38bfddd6441) by Nieve5677 (https://sketchfab.com/niev) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

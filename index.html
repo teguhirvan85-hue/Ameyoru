@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ameyoru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.5.3/lib/three-vrm.module.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <!-- loading: the city's systems coming up, one line per real step, over a still of the street in the rain -->
+  <div id="loading" class="screen boot">
+    <div class="boot-bg"></div>
+    <canvas id="bootRain"></canvas>
+    <div class="boot-panel">
+      <div class="boot-head">
+        <div class="boot-logo"><span class="jp">雨夜</span><span class="en">AMEYORU</span></div>
+        <div class="boot-sys">星見市 · 街区システム <b>1.4</b><br>HOSHIMI · CITY SYSTEMS</div>
+      </div>
+      <ol id="bootLog"></ol>
+    </div>
+    <div class="boot-foot">
+      <div class="boot-now"><span id="loadmsg">Preparing…</span><span id="loadpct">0%</span></div>
+      <div class="bar"><i id="bar"></i></div>
+      <div id="loadhint"></div>
+    </div>
+  </div>
+
+  <!-- title: the live city behind, a drone drifting down its streets -->
+  <div id="title" class="screen hidden">
+    <div id="tdim"></div>
+    <div class="t-brand">
+      <div class="t-kicker">雨夜 · あめよる</div>
+      <h1>AMEYORU</h1>
+      <div class="t-sub">A rainy night in Hoshimi</div>
+    </div>
+    <nav id="tmenu">
+      <button data-act="start"><span>Start</span><em>はじめる</em></button>
+      <button data-act="settings"><span>Settings</span><em>せってい</em></button>
+      <button data-act="controls"><span>Controls</span><em>そうさ</em></button>
+      <button data-act="credits"><span>Credits</span><em>クレジット</em></button>
+    </nav>
+    <div id="tpanel" class="hidden"></div>
+    <div class="t-foot"><span id="tshot"></span><span class="t-keys"><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> select · <kbd>Esc</kbd> back</span></div>
+  </div>
+
+  <!-- the opening shot after Start: letterbox, the street's name, then the HUD -->
+  <div id="cine" class="hidden">
+    <div class="cine-black"></div>
+    <div class="cine-bar top"></div><div class="cine-bar bot"></div>
+    <div id="cineCard"><div class="jp">星見通り</div><div class="en">HOSHIMI-DORI</div><div class="sub" id="cineSub"></div></div>
+    <div class="cine-skip"><kbd>Enter</kbd> skip</div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div id="loc">
+      <div class="jp" id="locJp">星見通り</div>
+      <div class="sub" id="locSub">Hoshimi Street · 23:52 · rain</div>
+      <div id="wallet"></div>
+    </div>
+
+    <div id="controls" class="panel">
+      <div class="ttl">Controls</div>
+      <div class="row"><span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Walk</span></div>
+      <div class="row"><span class="keys"><kbd>Shift</kbd></span><span>Run</span></div>
+      <div class="row"><span class="keys"><kbd>Mouse</kbd></span><span>Turn camera</span></div>
+      <div class="row"><span class="keys"><kbd>E</kbd></span><span>Look / talk</span></div>
+      <div class="row"><span class="keys"><kbd>C</kbd></span><span>Change character</span></div>
+      <div class="row"><span class="keys"><kbd>V</kbd></span><span>Camera: eyes / behind</span></div>
+      <div class="row"><span class="keys"><kbd>H</kbd></span><span>Hide this panel</span></div>
+      <div class="row"><span class="keys"><kbd>M</kbd></span><span>Sound on/off</span></div>
+      <div class="row"><span class="keys"><kbd>O</kbd></span><span>Music &amp; sound volume</span></div>
+      <div class="row"><span class="keys"><kbd>R</kbd></span><span>Change weather</span></div>
+      <div class="row"><span class="keys"><kbd>G</kbd></span><span>Graphics quality</span></div>
+      <div class="row"><span class="keys"><kbd>T</kbd></span><span>Speed up time (hold)</span></div>
+      <div class="row"><span class="keys"><kbd>J</kbd></span><span>Skip time (night/morning/day)</span></div>
+      <div class="row"><span class="keys"><kbd>Tab</kbd></span><span>Town map</span></div>
+      <div class="row"><span class="keys"><kbd>P</kbd></span><span>Photo mode</span></div>
+      <div class="row"><span class="keys"><kbd>I</kbd></span><span>Items &amp; jobs</span></div>
+    </div>
+
+    <div id="prompt" class="hidden"><kbd>E</kbd><span id="promptText"></span></div>
+
+    <div id="dialog" class="hidden">
+      <div id="who"></div>
+      <div id="dtext"></div>
+      <div class="next">E ▸</div>
+    </div>
+
+    <canvas id="minimap"></canvas>
+    <!-- the city map (Tab): pan, zoom, drop a mark; the places you've found down the side -->
+    <div id="bigmap" class="hidden">
+      <div class="mp-head">
+        <div class="mp-ttl"><span class="jp">星見市地図</span><b>HOSHIMI · CITY MAP</b></div>
+        <div class="mp-mark" id="mpMark">No mark · click the map to set one</div>
+      </div>
+      <div class="mp-body">
+        <div class="mp-view">
+          <canvas id="bigmapCanvas"></canvas>
+          <div class="legend"><span><i class="you"></i>You</span><span><i class="mk"></i>Mark</span><span><i class="drive"></i>Drivable car</span><span><i class="traf"></i>Traffic</span><span><i class="ppl"></i>People</span>
+            <span><i class="k-shop"></i>Shop</span><span><i class="k-food"></i>Food</span><span><i class="k-play"></i>Play</span><span><i class="k-sight"></i>Sight</span><span><i class="k-transit"></i>Station</span><span><i class="k-love">♥</i>Desy Ika</span></div>
+        </div>
+        <aside class="mp-side">
+          <div class="mp-count"><span>PLACES</span><b id="mpCount"></b></div>
+          <div id="mpList"></div>
+        </aside>
+      </div>
+      <div class="mp-keys"><kbd>Drag</kbd> pan · <kbd>Wheel</kbd> zoom · <kbd>Click</kbd> mark · <kbd>Right-click</kbd> clear · <kbd>Space</kbd> centre · <kbd>Tab</kbd> close</div>
+    </div>
+    <div id="hint">Click the screen to lock the camera · Esc to release</div>
+    <div id="mute" class="hidden">Sound off · M</div>
+    <div id="toast" class="hidden"></div>
+    <div id="fade"></div>
+  </div>
+
+  <div id="charMenu" class="hidden">
+    <div class="cm panel">
+      <div class="cm-head">
+        <div class="ttl">Change character</div>
+        <div class="cm-hint"><kbd>←</kbd><kbd>→</kbd> choose<span id="cmSkinHint" class="hidden"> · <kbd>↑</kbd><kbd>↓</kbd> skin</span> · <kbd>Enter</kbd> wear · <kbd>C</kbd> close</div>
+      </div>
+      <div id="cards"></div>
+      <div id="skins" class="hidden"></div>
+      <div id="cmInfo"><div class="nm"></div><div class="by"></div></div>
+    </div>
+  </div>
+
+  <!-- pause (Esc): the town stops behind frosted glass -->
+  <div id="pause" class="hidden">
+    <div class="pz-side">
+      <div class="pz-kicker">一時停止 · PAUSED</div>
+      <h2 id="pzPlace">星見通り</h2>
+      <div class="pz-sub" id="pzSub"></div>
+      <nav id="pzMenu">
+        <button data-act="resume"><span>Resume</span><em>つづける</em></button>
+        <button data-act="map"><span>Town map</span><em>ちず</em></button>
+        <button data-act="settings"><span>Settings</span><em>せってい</em></button>
+        <button data-act="controls"><span>Controls</span><em>そうさ</em></button>
+        <button data-act="title"><span>Back to title</span><em>タイトル</em></button>
+      </nav>
+      <div class="pz-keys"><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> select · <kbd>Esc</kbd> resume</div>
+    </div>
+    <aside id="pzNote" class="pz-card"></aside>
+  </div>
+
+  <!-- settings: from the pause menu, the title screen, or O (sound) -->
+  <div id="settings" class="hidden">
+    <div class="st-card">
+      <div class="st-head">
+        <div class="st-ttl">Settings <em>せってい</em></div>
+        <div class="st-tabs" id="stTabs"></div>
+      </div>
+      <div id="stRows"></div>
+      <div class="st-foot">
+        <button id="stReset">Reset to defaults</button>
+        <span class="st-keys"><kbd>Q</kbd><kbd>E</kbd> tab · <kbd>↑</kbd><kbd>↓</kbd> move · <kbd>←</kbd><kbd>→</kbd> adjust · <kbd>Esc</kbd> back</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="fps" class="hidden"></div>
+  <div id="banner" class="hidden"><div class="bn-kick" id="bnKick"></div><div class="bn-name"><span id="bnName"></span><span class="jp" id="bnJp"></span></div><div class="bn-sub" id="bnSub"></div></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
