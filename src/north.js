@@ -11,6 +11,7 @@ import { SLOPES } from './district.js';
 import { spawnCar } from './assets.js';
 import { dressVehicle } from './realveh.js';
 import { flipWinding } from './vehmerge.js';
+import { DESY } from './desy.js';
 
 export const NORTH = {
   z0: 44,                                                                   // the cross street's north pavement edge
@@ -93,21 +94,21 @@ export function buildNorth(K) {
   const edges0 = rainEdges.length, roofs0 = K.roofs.length;
   // Desy Ika · Flowers & Café: a 9 m front on the east side, the first slot past the arcade's middle
   // (its own width and type; the shops after it on that side shift along a little)
-  const DESY = { side: 1, z: null };
+  const CAFE = { side: 1, z: null };
   for (const side of [-1, 1]) {
     let z = S.z0;
     while (z < S.shops1 - 0.5) {
       let w = 6 + rn() * 6;
       if (z + w > S.shops1 - 5) w = S.shops1 - z;
       const h = 6 + Math.floor(rn() * 4) * 3 + (rn() < 0.15 ? 9 : 0);
-      if (side === DESY.side && DESY.z === null && z > 64 && z + 9 < S.shops1 - 6) {
-        DESY.z = z; building(side, z, z + 9, Math.max(h, 9), { type: 'florist' }); z += 9; continue;
+      if (side === CAFE.side && CAFE.z === null && z > 64 && z + 9 < S.shops1 - 6) {
+        CAFE.z = z; building(side, z, z + 9, Math.max(h, 9), { type: 'florist' }); z += 9; continue;
       }
       building(side, z, z + w, h);
       z += w;
     }
   }
-  NORTH.desy = DESY.z === null ? null : { x: DESY.side * (S.x - 0.02), z: DESY.z + 4.5 };
+  NORTH.desy = CAFE.z === null ? null : { x: CAFE.side * (S.x - 0.02), z: CAFE.z + 4.5 };
   // the roof keeps the rain off: nothing drips from the awnings in here
   for (let i = rainEdges.length - 1; i >= edges0; i--) { const e = rainEdges[i]; if (Math.abs(e.x) < 7.6 && e.z1 > S.z0 && e.z0 < S.roof1) rainEdges.splice(i, 1); }
   for (const r of K.roofs.slice(roofs0)) K.rooftop(r);
@@ -596,6 +597,7 @@ export function buildNorth(K) {
     K.interactables.push({ pos: V3(hx - 1.2, Y, cz + hz - 1.9), r: 1.0, label: 'Look through the binoculars ¥100', anim: 'push',
       action: (api) => {
         api.teleport(hx - 1.2, Y + 0.02, cz + hz - 1.9, Math.atan2(0.8, 0.27) + 0.09, null, -0.25);
+        if (!DESY) return [{ text: 'The lens clicks open. Past the cranes and the dark water, the bay lies black and quiet; a few stars show between the clouds.' }];
         return [{ text: 'The lens clicks open. Past the cranes and the dark water, one star burns brighter than all the rest, pink as a rose petal.' },
           { who: 'A small brass plate under the eyepiece', text: '"The star over Hoshimi Bay is named Desy Ika. On rainy nights, it is the one that still shines."' }];
       } });
@@ -655,9 +657,11 @@ export function buildNorth(K) {
       g.fillStyle = '#e8fbff'; g.font = `bold ${h * 0.18}px "Chakra Petch",sans-serif`; g.textAlign = 'center'; g.fillText('NOVA SYSTEMS', w / 2, h * 0.86);
     },
   };
-  ledScreen(0, 26, sky.fz - 0.5, 26, 14.6, Math.PI, ['desy', 'rhythm', 'news', 'desy', 'beer', 'nova']);
-  ledScreen(-41, 22, ZT - 0.35, 16, 9, Math.PI, ['beer', 'desy', 'nova', 'news']);
-  ledScreen(39, 30, ZT - 0.35, 12, 18, Math.PI, ['nova', 'desy', 'rhythm']);
+  // (her slide only in Desy mode, desy.js)
+  const ds = (list) => (DESY ? list : list.filter((n) => n !== 'desy'));
+  ledScreen(0, 26, sky.fz - 0.5, 26, 14.6, Math.PI, ds(['desy', 'rhythm', 'news', 'desy', 'beer', 'nova']));
+  ledScreen(-41, 22, ZT - 0.35, 16, 9, Math.PI, ds(['beer', 'desy', 'nova', 'news']));
+  ledScreen(39, 30, ZT - 0.35, 12, 18, Math.PI, ds(['nova', 'desy', 'rhythm']));
   for (const sc of screens) { SLIDES[sc.slides[0]](sc.g, sc.cv.width, sc.cv.height, 0); sc.tex.needsUpdate = true; }   // never a blank screen
   NORTH.led = { screens, SLIDES };   // for checking from the console
   let ledT = 0;

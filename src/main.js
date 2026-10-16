@@ -35,6 +35,7 @@ import { NORTH } from './north.js';
 import { makeQuests } from './quests.js';
 import { setupKTX2 } from './ktx2.js';
 import { MOBILE } from './device.js';
+import { DESY, setDesy } from './desy.js';
 import { makeDiag } from './diag.js';
 import { makeTouch } from './touch.js';
 
@@ -497,6 +498,30 @@ function titlePanel(kind) {
   }
 }
 document.getElementById('tpanel').addEventListener('click', (e) => { if (e.target.closest('[data-close]')) titlePanel(null); });
+// ---------- Desy mode (desy.js): a secret on the title screen switches it — type D E S Y, or tap the logo 5 times ----------
+{
+  let typed = '', taps = [];
+  const flip = () => {
+    const on = !DESY; setDesy(on);
+    const n = document.createElement('div'); n.id = 'desyNote'; n.textContent = on ? '♡ on' : '♡ off';
+    document.getElementById('title').appendChild(n);
+    sound.chime?.();
+    // the café, the plates and the sky are built while loading: start again with the new setting
+    setTimeout(() => location.reload(), 1400);
+  };
+  addEventListener('keydown', (e) => {
+    if (mode !== 'title' || stUI.open || !/^Key[A-Z]$/.test(e.code)) return;
+    typed = (typed + e.code.slice(3)).slice(-4);
+    if (typed === 'DESY') { typed = ''; flip(); }
+  });
+  document.querySelector('#title h1').addEventListener('pointerdown', () => {
+    if (mode !== 'title') return;
+    const now = performance.now(); taps = taps.filter((t) => now - t < 2500); taps.push(now);
+    if (taps.length >= 5) { taps = []; flip(); }
+  });
+  // the map's legend only names her café in Desy mode
+  if (!DESY) document.querySelector('#bigmap .legend .k-love')?.parentElement.remove();
+}
 function titleAct(act) {
   if (act === 'start') start();
   else if (act === 'settings') { titlePanel(null); openSettings(null); }

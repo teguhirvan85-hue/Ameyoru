@@ -2,10 +2,11 @@
 // Fly it anywhere near you, set the lens (field of view, focus, blur), the exposure, a film look, a vignette and
 // grain, tilt the horizon, pose your character or hide them, and save the picture as a PNG.
 import * as THREE from 'three';
+import { DESY } from './desy.js';
 
 const FILTERS = [['None', 'なし'], ['Noir', 'ノワール'], ['Warm film', 'フィルム'], ['Cool neon', 'ネオン'], ['Faded', 'あせた'], ['Sepia', 'セピア']];
 // a frame laid over the picture (drawn into the saved PNG too): none, or a soft white border with a line for Desy
-const FRAMES = [['None', 'なし'], ['For Desy', 'デシーへ']];
+const FRAMES = DESY ? [['None', 'なし'], ['For Desy', 'デシーへ']] : [['None', 'なし']];   // (Desy mode only, desy.js)
 const POSES = [['stand', 'Stand'], ['text', 'Phone'], ['talk', 'Talk'], ['drink', 'Drink'], ['sing', 'Sing'], ['pick', 'Reach']];
 const RANGE = 35;   // how far from you the camera may fly (the town is drawn around you)
 

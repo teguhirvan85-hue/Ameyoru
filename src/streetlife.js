@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import * as TX from './textures.js';
 import { NORTH } from './north.js';
+import { CAFE_NAME } from './desy.js';
 
 export function buildStreetLife(W) {
   const { scene, assets, colliders, WALK, interactables, doors, fronts, vends, collide, batch, box, std, updaters } = W;
@@ -79,7 +80,7 @@ export function buildStreetLife(W) {
     laundry: ['LAUNDRY', 'Wash ¥400', 'Dry 10 min ¥100', 'Open 24 hours'],
     estate: ['FOR RENT', '1K 22m² ¥68,000', '1LDK ¥98,000', '3 min to station'],
     gacha: ['GACHA', 'New capsules in!', '¥300 / ¥500', 'Open till midnight'],
-    florist: ['Desy Ika', 'Pink roses ¥300', 'Rose latte ¥520', 'Flowers & café'],
+    florist: [CAFE_NAME, 'Pink roses ¥300', 'Rose latte ¥520', 'Flowers & café'],
     lunch: ['LUNCH', 'Karaage set ¥880', 'Curry rice ¥750', 'Coffee +¥100'],
     today: ['TODAY', 'Shoyu ramen ¥780', 'Gyoza 6pc ¥390', 'Draft beer ¥500'],
     bakery: ['OPEN', 'Fresh bread', 'Melon pan ¥160', 'Coffee ¥200'],

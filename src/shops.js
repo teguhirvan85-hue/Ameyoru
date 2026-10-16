@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { canvasTex, JP_FONT, LATIN_FONT, nobori } from './textures.js';
 import { SHOP_H, SHOP_DEPTH, playGacha, frame, gachaUnit, gachaCapsules, gachaInterior, barberInterior, laundryInterior, estateInterior, izakayaInterior, ramenInterior, kissaInterior, karaokeInterior, apartmentInterior, floristInterior, placeRoses } from './interiors.js';
+import { DESY, CAFE_NAME, CAFE_FULL } from './desy.js';
 
 export { SHOP_H, SHOP_DEPTH };
 // these get a real room behind the glass (world.js leaves the ground floor of their block open)
@@ -20,7 +21,7 @@ const DOOR = {
   estate: { kind: 'auto', w: 1.1, name: 'Estate agent', amb: 'quiet' },
   karaoke: { kind: 'auto', w: 1.4, name: 'Karaoke', amb: 'karaoke' },
   apartment: { kind: 'auto', w: 1.1, name: 'Apartment lobby', amb: 'quiet' },
-  florist: { kind: 'swing', w: 1.0, sound: 'swing', frame: new THREE.MeshStandardMaterial({ color: 0xf2eee8, roughness: 0.5 }), name: 'Desy Ika · Flowers & Café', amb: 'kissa' },
+  florist: { kind: 'swing', w: 1.0, sound: 'swing', frame: new THREE.MeshStandardMaterial({ color: 0xf2eee8, roughness: 0.5 }), name: CAFE_FULL, amb: 'kissa' },
 };
 const ROOM_JP = { izakaya: '居酒屋', ramen: 'ラーメン', kissa: '喫茶', barber: '理容', laundry: 'コインランドリー', gacha: 'ガチャガチャ', estate: '不動産', karaoke: 'カラオケ', apartment: 'メゾン星見', florist: '花とカフェ' };
 
@@ -187,7 +188,7 @@ const LINES = {
   karaoke: [{ text: 'The karaoke neon flickers from colour to colour. "Night pack ¥1,500, free-flow drinks."' }],
   closed: [{ text: 'The shutter is pulled tight. Old sticker glue here and there.' }],
   apartment: [{ text: 'The lobby of Maison Hoshimi. The mailboxes are stuffed with pizza flyers.' }],
-  florist: [{ who: 'Desy Ika · Flowers & Café', text: 'Buckets of pink roses line the window, and the glass glows warm against the rain.' }, { text: 'Coffee and roses. Somebody named this place with a lot of love.' }],
+  florist: [{ who: CAFE_FULL, text: 'Buckets of pink roses line the window, and the glass glows warm against the rain.' }, { text: DESY ? 'Coffee and roses. Somebody named this place with a lot of love.' : 'Coffee and roses, open late for anyone caught in the rain.' }],
 };
 
 // S: helpers handed over from world.js
@@ -441,7 +442,8 @@ export function buildShop(S, type, side, z0, z1) {
       break;
     }
     case 'florist': {
-      // Desy Ika · Flowers & Café: white frames, a pink-striped awning, her name in neon, roses out on the pavement
+      // the flower café (Desy Ika's in Desy mode, desy.js): white frames, a pink-striped awning, its name in neon,
+      // roses out on the pavement
       floristInterior(S, frame(S, side, z0, z1), rnd); glazing(DOOR.florist.frame);
       const sign = tex(1024, 192, (g, cw, ch) => {
         const gr = g.createLinearGradient(0, 0, cw, 0); gr.addColorStop(0, '#2a1420'); gr.addColorStop(0.5, '#3a1a2a'); gr.addColorStop(1, '#2a1420');
@@ -450,7 +452,7 @@ export function buildShop(S, type, side, z0, z1) {
         g.textAlign = 'center'; g.textBaseline = 'middle';
         for (const [blur, col, lw] of [[30, 'rgba(255,90,160,0.95)', 10], [10, 'rgba(255,160,205,1)', 6], [0, '#fff5f9', 2.5]]) {
           g.shadowColor = col; g.shadowBlur = blur; g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round';
-          g.font = 'italic 600 104px "Bodoni 72", Didot, "Playfair Display", Georgia, serif'; g.strokeText('Desy Ika', cw / 2 - 90, 92);
+          g.font = 'italic 600 104px "Bodoni 72", Didot, "Playfair Display", Georgia, serif'; g.strokeText(CAFE_NAME, cw / 2 - 90, 92);
         }
         g.shadowBlur = 10; g.shadowColor = '#ff9cc4'; g.fillStyle = '#ffe2ee'; g.font = `600 30px ${LATIN_FONT}`; g.textAlign = 'left';
         g.fillText('FLOWERS', cw / 2 + 170, 74); g.fillText('& CAFÉ', cw / 2 + 170, 116);

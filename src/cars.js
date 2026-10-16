@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { JP_FONT } from './textures.js';
+import { DESY } from './desy.js';
 
 // u runs 0 (rear bumper) → 1 (front bumper). Heights in metres.
 export const CAR_SPECS = {
@@ -139,8 +140,10 @@ function bodyGeometry(sp) {
 }
 
 // ---------- parts ----------
-// number plate: Japanese colours (white private, yellow kei, green commercial), reading DESY.
+// number plate: Japanese colours (white private, yellow kei, green commercial), reading DESY in Desy mode
+// (desy.js), an ordinary number otherwise.
 // aspect: width / height of the plate it goes on (2 for a Japanese plate, wider to cover a European one)
+let plateN = 0;
 export function plateTexture(kind, aspect = 2) {
   const c = document.createElement('canvas'); c.width = 512; c.height = Math.round(512 / aspect);
   const g = c.getContext('2d'), W = c.width, H = c.height;
@@ -153,7 +156,14 @@ export function plateTexture(kind, aspect = 2) {
   const tall = aspect < 3;
   if (tall) { g.font = `700 ${Math.round(H * 0.2)}px ${JP_FONT}`; g.fillText('星見 500', W / 2, H * 0.24); }
   g.font = `900 ${Math.round(H * (tall ? 0.5 : 0.7))}px "Chakra Petch", ${JP_FONT}`;
-  g.fillText('DESY', W / 2, tall ? H * 0.64 : H * 0.54, W * 0.86);
+  if (DESY) g.fillText('DESY', W / 2, tall ? H * 0.64 : H * 0.54, W * 0.86);
+  else {
+    // a kana for the class of car, then a four-figure number (a different one each time a plate is made)
+    const n = 1000 + ((plateN++ * 3739 + 2467) % 9000), num = `${String(n).slice(0, 2)}-${String(n).slice(2)}`;
+    const kana = kind === 'kei' ? 'あ' : kind === 'green' ? 'け' : 'さ';
+    if (tall) { g.font = `700 ${Math.round(H * 0.26)}px ${JP_FONT}`; g.fillText(kana, W * 0.15, H * 0.66); g.font = `900 ${Math.round(H * 0.5)}px "Chakra Petch", ${JP_FONT}`; }
+    g.fillText(num, tall ? W * 0.57 : W / 2, tall ? H * 0.64 : H * 0.54, W * 0.72);
+  }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }

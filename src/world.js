@@ -24,6 +24,7 @@ import { buildCar } from './cars.js';
 import { buildNorth } from './north.js';
 import { makeFacades } from './facades.js';
 import { buildStreetLife } from './streetlife.js';
+import { DESY } from './desy.js';
 
 export const JP_TEXT = '星見通り居酒屋ラーメン薬局喫茶床屋カラオケ焼鳥書店古着質屋ほしマートゲームセンタールミナリズム祭止まれあったか〜い雨夜｜酒空車';
 
@@ -273,10 +274,10 @@ export function buildWorld(scene, renderer, assets) {
         col += mix(vec3(1.0, 0.95, 0.85), vec3(1.0, 0.62, 0.35), warm) * (smoothstep(0.9992, 0.9996, sd) * 4.0 + pow(sd, 10.0) * 0.3) * dawn * (0.3 + 0.7 * clear);
         float md = max(dot(d, normalize(vec3(-0.45, 0.5, -0.74))), 0.0);
         col += vec3(0.85, 0.88, 0.95) * (smoothstep(0.99955, 0.9998, md) * 1.6 + pow(md, 80.0) * 0.12) * (1.0 - dawn) * (0.15 + 0.85 * clear);
-        // Desy's star, out over the bay to the east: the one that still shows through the rain clouds
-        float ds = max(dot(normalize(vView), normalize(vec3(0.8, 0.55, 0.27))), 0.0);
+        // Desy's star, out over the bay to the east: the one that still shows through the rain clouds (Desy mode)
+        ${DESY ? `float ds = max(dot(normalize(vView), normalize(vec3(0.8, 0.55, 0.27))), 0.0);
         float tw = 0.82 + 0.18 * sin(time * 2.7) * sin(time * 1.3 + 1.0);
-        col += (vec3(1.0, 0.86, 0.93) * smoothstep(0.99994, 0.99999, ds) * 2.2 + vec3(1.0, 0.5, 0.75) * (pow(ds, 3000.0) * 0.9 + pow(ds, 220.0) * 0.08)) * tw * (1.0 - dawn) * (0.45 + 0.55 * clear);
+        col += (vec3(1.0, 0.86, 0.93) * smoothstep(0.99994, 0.99999, ds) * 2.2 + vec3(1.0, 0.5, 0.75) * (pow(ds, 3000.0) * 0.9 + pow(ds, 220.0) * 0.08)) * tw * (1.0 - dawn) * (0.45 + 0.55 * clear);` : ''}
         gl_FragColor = vec4(col, 1.0);
       }`,
     side: THREE.BackSide, depthWrite: false, fog: false,

@@ -5,6 +5,7 @@
 //   always: shown on the map (and in the list) before you've found it
 
 import { NORTH } from './north.js';
+import { DESY, CAFE_FULL } from './desy.js';
 
 export const DISTRICTS = [
   { id: 'main', name: 'Hoshimi Street', jp: '星見通り', in: (x, z) => Math.abs(x) < 13 && z > -148 && z < 37 },
@@ -48,7 +49,7 @@ export const PLACES = [
   { id: 'south', name: 'South Street', jp: '南通り', kind: 'sight', d: 'south', x: 0, z: -200, r: 10 },
   { id: 'ginza', name: 'Hoshimi Ginza', jp: '星見銀座', kind: 'shop', d: 'ginza', x: 0, z: 50, r: 7 },
   // where it stands is settled when the arcade is built (north.js NORTH.desy)
-  { id: 'desy', name: 'Desy Ika · Flowers & Café', jp: '花とカフェ', kind: 'love', always: true, d: 'ginza', get x() { return (NORTH.desy?.x ?? 7) - 2; }, get z() { return NORTH.desy?.z ?? 70; }, r: 4.5 },
+  { id: 'desy', name: CAFE_FULL, jp: '花とカフェ', kind: DESY ? 'love' : 'food', always: DESY, d: 'ginza', get x() { return (NORTH.desy?.x ?? 7) - 2; }, get z() { return NORTH.desy?.z ?? 70; }, r: 4.5 },
   { id: 'plaza', name: 'Shin-Hoshimi Plaza', jp: '新星見広場', kind: 'sight', d: 'shin', x: 0, z: 140, r: 10 },
   { id: 'skytower', name: 'Hoshimi Sky Tower', jp: '星見スカイタワー', kind: 'sight', d: 'shin', x: 0, z: 158, r: 7 },
   { id: 'promenade', name: 'Canal promenade', jp: '運河プロムナード', kind: 'sight', d: 'canal', x: 90, z: 70, r: 8 },

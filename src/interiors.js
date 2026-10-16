@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { canvasTex, JP_FONT, LATIN_FONT } from './textures.js';
 import { place } from './furnish.js';
+import { DESY, CAFE_NAME } from './desy.js';
 
 export const SHOP_H = 3.0, SHOP_DEPTH = 4.4;
 const FLOOR = 0.158;
@@ -838,7 +839,7 @@ export function placeRoses(S, kind, list) {
   return out;
 }
 
-// ---------- Desy Ika · Flowers & Café: a florist in front, a little café at the back ----------
+// ---------- the flower café (Desy Ika · Flowers & Café in Desy mode): a florist in front, a café at the back ----------
 // a hedge wall with pink roses and her name in neon, tiered stands of rose buckets, two marble tables, a
 // barista's counter with an espresso machine and a cake under glass. Pink and white, warm light.
 export function floristInterior(S, F, rnd) {
@@ -875,14 +876,14 @@ export function floristInterior(S, F, rnd) {
     g.clearRect(0, 0, w, h); g.textAlign = 'center'; g.textBaseline = 'middle';
     for (const [blur, col, lw] of [[40, 'rgba(255,90,160,0.9)', 14], [14, 'rgba(255,150,200,1)', 9], [0, '#fff3f8', 4]]) {
       g.shadowColor = col; g.shadowBlur = blur; g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round';
-      g.font = 'italic 600 170px "Bodoni 72", Didot, "Playfair Display", Georgia, serif'; g.strokeText('Desy Ika', w / 2, 150);
+      g.font = 'italic 600 170px "Bodoni 72", Didot, "Playfair Display", Georgia, serif'; g.strokeText(CAFE_NAME, w / 2, 150);
     }
     g.shadowBlur = 18; g.shadowColor = 'rgba(255,150,200,1)'; g.fillStyle = '#ffe6f0'; g.font = `600 44px ${LATIN_FONT}`; g.fillText('F L O W E R S   &   C A F É', w / 2, 305);
   }) });
   neon.color = new THREE.Color(1.6, 1.4, 1.5);
   F.b(new THREE.PlaneGeometry(2.6, 0.975).rotateY(-Math.PI / 2), neon, R.D - 0.13, hy + 0.08, hz);
   S.light?.(F.wx(R.D - 0.8), FLOOR + 1.8, F.wz(hz), 0xff7ab0, 6, 4);
-  F.act(R.D - 1.0, hz, 'Read the little card in the flowers', () => [
+  if (DESY) F.act(R.D - 1.0, hz, 'Read the little card in the flowers', () => [
     { who: 'A card tucked into the roses', text: 'For Desy Ika, the brightest flower in Hoshimi.' },
     { text: 'Underneath, in smaller handwriting: "Every rainy night in this town leads back to you."' },
   ], 1.0);
@@ -929,7 +930,7 @@ export function floristInterior(S, F, rnd) {
     F.solid(d - 0.36, d + 0.36, lz - 0.36, lz + 0.36);
     pendant(F, d, lz, 2.15, 0xffc0d8, 2.0, 0.11);
   }
-  const order = (api, cup) => api.choose('Desy Ika · Café', ['Rose latte ¥520', 'Strawberry shortcake ¥480', 'Sakura tea ¥450', 'Just sit a while'], (k) => {
+  const order = (api, cup) => api.choose(`${CAFE_NAME} · Café`, ['Rose latte ¥520', 'Strawberry shortcake ¥480', 'Sakura tea ¥450', 'Just sit a while'], (k) => {
     if (k === 3) { api.say([{ text: 'Rain on the glass, roses all around. You stay a while.' }]); return; }
     cup.visible = true; api.sound.beep();
     api.say([{ who: 'Barista', text: ['A latte with a rose drawn in the foam, and a little rose syrup underneath.', 'Strawberries, cream, a sponge as soft as a cloud.', 'Pale pink tea; a salted cherry blossom opens slowly in the cup.'][k] }]);

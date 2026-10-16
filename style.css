@@ -470,3 +470,7 @@ body.touch #prompt { bottom: 256px; pointer-events: auto; cursor: pointer; }
 .st-tabs::-webkit-scrollbar { display: none; }
 .st-head { padding-right: 46px; }
 @media (max-width: 420px) { .st-tabs button { padding: 9px 9px 11px; } }
+/* Desy mode switched (the title screen's secret) */
+#desyNote { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); z-index: 5; pointer-events: none;
+  font: italic 600 28px "Bodoni 72", Didot, Georgia, serif; color: #ff9cc4; text-shadow: 0 0 18px rgba(255, 95, 160, .8); animation: desyIn 1.4s ease-out both; }
+@keyframes desyIn { from { opacity: 0; transform: translate(-50%, 8px); } 30% { opacity: 1; transform: translate(-50%, 0); } }
